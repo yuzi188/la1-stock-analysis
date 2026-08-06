@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent, MouseEvent as ReactMouseEvent, ReactNode } from "react";
 
 type Quote = {
   symbol: string;
@@ -692,12 +692,43 @@ export default function Home() {
   const [authMessage, setAuthMessage] = useState("");
   const [cloudProfile, setCloudProfile] = useState({ email: "", name: "LA1 用戶" });
   const [cloudStatus, setCloudStatus] = useState("尚未同步");
+  const [zoomedCard, setZoomedCard] = useState<{ title: string; markup: string; sourceClass: string } | null>(null);
 
   const score = sentimentScore(quote);
   const marketScore = marketSummary?.breadth.score ?? score;
   const risk = riskScore(quote, context);
   const signal = tradeSignal(quote, context);
   const activePageMeta = pages.find((page) => page.key === activePage) ?? pages[0];
+  const openZoomedCard = useCallback((event: ReactMouseEvent<HTMLElement>) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const blockedSelector = "button, input, textarea, select, option, a, label, form, [role='button'], [data-no-card-zoom='true']";
+    if (target.closest(blockedSelector)) return;
+
+    const card = target.closest(".panel, .metric-card, .note-card");
+    if (!(card instanceof HTMLElement) || !event.currentTarget.contains(card)) return;
+
+    const title = card.querySelector("h2, strong")?.textContent?.trim() || "\u5361\u7247\u653e\u5927\u6aa2\u8996";
+    setZoomedCard({
+      title,
+      markup: card.innerHTML,
+      sourceClass: card.className,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!zoomedCard) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setZoomedCard(null);
+      }
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [zoomedCard]);
   const tone = useMemo(() => {
     if (!quote?.changePercent) return "flat";
     return quote.changePercent > 0 ? "up" : "down";
@@ -2165,6 +2196,7 @@ export default function Home() {
 
   return (
     <main className="terminal-shell command-center">
+      <div className="command-marquee">STRATEGIC COMMAND CENTER</div>
       <aside className="sidebar">
         <div className="brand-block">
           <strong>LA1 STOCK LAB</strong>
@@ -2225,7 +2257,7 @@ export default function Home() {
         <PageTitle page={activePageMeta} />
 
         {activePage === "overview" ? (
-          <section className="top-metrics" aria-label="市場總覽指標">
+          <section className="top-metrics" aria-label="市場總覽指標" onClick={openZoomedCard}>
             {topCards.map((card) => (
               <article className="metric-card" key={card.label}>
                 <div>
@@ -2239,8 +2271,35 @@ export default function Home() {
           </section>
         ) : null}
 
-        <section className={`dashboard-layout page-${activePage}`}>{renderPage()}</section>
+        <section className={`dashboard-layout page-${activePage}`} onClick={openZoomedCard}>
+          {renderPage()}
+        </section>
       </section>
+
+      {zoomedCard ? (
+        <div
+          className="card-zoom-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setZoomedCard(null);
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="card-zoom-title"
+        >
+          <section className={`card-zoom-modal ${zoomedCard.sourceClass.includes("metric-card") ? "metric-source" : "panel-source"}`}>
+            <header className="card-zoom-toolbar">
+              <div>
+                <span>{"\u653e\u5927\u6aa2\u8996"}</span>
+                <strong id="card-zoom-title">{zoomedCard.title}</strong>
+              </div>
+              <button data-no-card-zoom="true" onClick={() => setZoomedCard(null)} type="button">
+                {"\u95dc\u9589"}
+              </button>
+            </header>
+            <div className="card-zoom-content" dangerouslySetInnerHTML={{ __html: zoomedCard.markup }} />
+          </section>
+        </div>
+      ) : null}
     </main>
   );
 }

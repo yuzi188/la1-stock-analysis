@@ -85,7 +85,7 @@ type Store = {
   reports: ScheduledReport[];
 };
 
-type SqlClient = ReturnType<(typeof import("postgres"))["default"]>;
+type PgPool = import("pg").Pool;
 
 type DbUserRow = {
   id: string;
@@ -138,7 +138,7 @@ const defaultStore: Store = {
 
 const globalStore = globalThis as typeof globalThis & {
   __la1ServerStore?: Store;
-  __la1PostgresClient?: SqlClient;
+  __la1PostgresClient?: PgPool;
   __la1PostgresReady?: Promise<void>;
 };
 
@@ -199,8 +199,8 @@ async function updateStore<T>(updater: (store: Store) => T | Promise<T>) {
   return result;
 }
 
-async function ensurePostgresSchema(sql: SqlClient) {
-  await sql`
+async function ensurePostgresSchema(pool: PgPool) {
+  await pool.query(`
     create table if not exists la1_users (
       id text primary key,
       email text,
@@ -208,8 +208,8 @@ async function ensurePostgresSchema(sql: SqlClient) {
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now()
     )
-  `;
-  await sql`
+  `);
+  await pool.query(`
     create table if not exists la1_snapshots (
       user_id text primary key references la1_users(id) on delete cascade,
       watchlist jsonb not null default '[]'::jsonb,
@@ -218,8 +218,8 @@ async function ensurePostgresSchema(sql: SqlClient) {
       read_notification_ids jsonb not null default '[]'::jsonb,
       updated_at timestamptz not null default now()
     )
-  `;
-  await sql`
+  `);
+  await pool.query(`
     create table if not exists la1_notifications (
       id text primary key,
       user_id text not null references la1_users(id) on delete cascade,
@@ -229,17 +229,17 @@ async function ensurePostgresSchema(sql: SqlClient) {
       read boolean not null default false,
       created_at timestamptz not null default now()
     )
-  `;
-  await sql`create index if not exists la1_notifications_user_created_idx on la1_notifications(user_id, created_at desc)`;
-  await sql`
+  `);
+  await pool.query("create index if not exists la1_notifications_user_created_idx on la1_notifications(user_id, created_at desc)");
+  await pool.query(`
     create table if not exists la1_quote_cache (
       symbol text primary key,
       quote jsonb not null,
       fetched_at timestamptz not null,
       expires_at timestamptz not null
     )
-  `;
-  await sql`
+  `);
+  await pool.query(`
     create table if not exists la1_scan_runs (
       id text primary key,
       user_id text not null references la1_users(id) on delete cascade,
@@ -248,9 +248,9 @@ async function ensurePostgresSchema(sql: SqlClient) {
       result jsonb not null,
       created_at timestamptz not null default now()
     )
-  `;
-  await sql`create index if not exists la1_scan_runs_user_created_idx on la1_scan_runs(user_id, created_at desc)`;
-  await sql`
+  `);
+  await pool.query("create index if not exists la1_scan_runs_user_created_idx on la1_scan_runs(user_id, created_at desc)");
+  await pool.query(`
     create table if not exists la1_scheduled_reports (
       id text primary key,
       report_type text not null,
@@ -259,8 +259,8 @@ async function ensurePostgresSchema(sql: SqlClient) {
       payload jsonb not null,
       created_at timestamptz not null default now()
     )
-  `;
-  await sql`create index if not exists la1_scheduled_reports_created_idx on la1_scheduled_reports(created_at desc)`;
+  `);
+  await pool.query("create index if not exists la1_scheduled_reports_created_idx on la1_scheduled_reports(created_at desc)");
 }
 
 async function getPostgres() {
@@ -268,11 +268,12 @@ async function getPostgres() {
   if (!url) return null;
 
   if (!globalStore.__la1PostgresClient) {
-    const { default: postgres } = await import("postgres");
-    globalStore.__la1PostgresClient = postgres(url, {
+    const { Pool } = await import("pg");
+    globalStore.__la1PostgresClient = new Pool({
+      connectionString: url,
       max: 3,
-      idle_timeout: 20,
-      connect_timeout: 10,
+      idleTimeoutMillis: 20_000,
+      connectionTimeoutMillis: 10_000,
     });
   }
 
@@ -330,8 +331,8 @@ function normalizeNotes(items: CloudInvestmentNote[]) {
 }
 
 export async function ensureUser(userId: string, input?: { email?: string | null; name?: string | null }) {
-  const sql = await getPostgres();
-  if (!sql) {
+  const pool = await getPostgres();
+  if (!pool) {
     return updateStore((store) => {
       const now = new Date().toISOString();
       const existing = store.users[userId];
@@ -349,12 +350,11 @@ export async function ensureUser(userId: string, input?: { email?: string | null
   }
 
   const now = new Date().toISOString();
-  const existingRows = (await sql`
-    select id, email, name, created_at, updated_at
-    from la1_users
-    where id = ${userId}
-  `) as DbUserRow[];
-  const existing = existingRows[0];
+  const existingResult = await pool.query<DbUserRow>(
+    "select id, email, name, created_at, updated_at from la1_users where id = $1",
+    [userId],
+  );
+  const existing = existingResult.rows[0];
   const user: CloudUser = {
     id: userId,
     email: input?.email ?? existing?.email ?? null,
@@ -363,28 +363,34 @@ export async function ensureUser(userId: string, input?: { email?: string | null
     updatedAt: now,
   };
 
-  await sql`
+  await pool.query(
+    `
     insert into la1_users (id, email, name, created_at, updated_at)
-    values (${user.id}, ${user.email}, ${user.name}, ${user.createdAt}, ${user.updatedAt})
+    values ($1, $2, $3, $4, $5)
     on conflict (id) do update set
       email = excluded.email,
       name = excluded.name,
       updated_at = excluded.updated_at
-  `;
-  await sql`
+    `,
+    [user.id, user.email, user.name, user.createdAt, user.updatedAt],
+  );
+  await pool.query(
+    `
     insert into la1_snapshots (user_id, watchlist, notes, alert_settings, read_notification_ids)
-    values (${user.id}, ${sql.json([])}, ${sql.json([])}, ${sql.json(defaultAlertSettings)}, ${sql.json([])})
+    values ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb)
     on conflict (user_id) do nothing
-  `;
+    `,
+    [user.id, "[]", "[]", JSON.stringify(defaultAlertSettings), "[]"],
+  );
 
   return user;
 }
 
 export async function getSnapshot(userId: string): Promise<CloudSnapshot> {
   const user = await ensureUser(userId);
-  const sql = await getPostgres();
+  const pool = await getPostgres();
 
-  if (!sql) {
+  if (!pool) {
     const store = await readJsonStore();
     const snapshot = store.snapshots[userId] ?? snapshotDefaults();
     return {
@@ -397,19 +403,21 @@ export async function getSnapshot(userId: string): Promise<CloudSnapshot> {
     };
   }
 
-  const snapshotRows = (await sql`
-    select watchlist, notes, alert_settings, read_notification_ids
-    from la1_snapshots
-    where user_id = ${userId}
-  `) as DbSnapshotRow[];
-  const row = snapshotRows[0];
-  const notifications = (await sql`
+  const snapshotResult = await pool.query<DbSnapshotRow>(
+    "select watchlist, notes, alert_settings, read_notification_ids from la1_snapshots where user_id = $1",
+    [userId],
+  );
+  const row = snapshotResult.rows[0];
+  const notifications = await pool.query<DbNotificationRow>(
+    `
     select id, user_id, title, detail, tone, read, created_at
     from la1_notifications
-    where user_id = ${userId}
+    where user_id = $1
     order by created_at desc
     limit 250
-  `) as DbNotificationRow[];
+    `,
+    [userId],
+  );
 
   return {
     user,
@@ -417,15 +425,15 @@ export async function getSnapshot(userId: string): Promise<CloudSnapshot> {
     notes: normalizeNotes(arrayFromUnknown<CloudInvestmentNote>(row?.notes)),
     alertSettings: { ...defaultAlertSettings, ...(row?.alert_settings as Partial<AlertSettings> | undefined) },
     readNotificationIds: arrayFromUnknown<string>(row?.read_notification_ids),
-    notifications: notifications.map(notificationFromRow),
+    notifications: notifications.rows.map(notificationFromRow),
   };
 }
 
 export async function saveSnapshot(userId: string, input: Partial<Omit<CloudSnapshot, "user" | "notifications">>) {
   await ensureUser(userId);
-  const sql = await getPostgres();
+  const pool = await getPostgres();
 
-  if (!sql) {
+  if (!pool) {
     return updateStore((store) => {
       const current = store.snapshots[userId] ?? snapshotDefaults();
       store.snapshots[userId] = {
@@ -450,48 +458,49 @@ export async function saveSnapshot(userId: string, input: Partial<Omit<CloudSnap
     readNotificationIds: input.readNotificationIds ?? current.readNotificationIds,
   };
 
-  await sql`
+  await pool.query(
+    `
     insert into la1_snapshots (user_id, watchlist, notes, alert_settings, read_notification_ids, updated_at)
-    values (
-      ${userId},
-      ${sql.json(next.watchlist)},
-      ${sql.json(next.notes)},
-      ${sql.json(next.alertSettings)},
-      ${sql.json(next.readNotificationIds)},
-      now()
-    )
+    values ($1, $2::jsonb, $3::jsonb, $4::jsonb, $5::jsonb, now())
     on conflict (user_id) do update set
       watchlist = excluded.watchlist,
       notes = excluded.notes,
       alert_settings = excluded.alert_settings,
       read_notification_ids = excluded.read_notification_ids,
       updated_at = excluded.updated_at
-  `;
+    `,
+    [
+      userId,
+      JSON.stringify(next.watchlist),
+      JSON.stringify(next.notes),
+      JSON.stringify(next.alertSettings),
+      JSON.stringify(next.readNotificationIds),
+    ],
+  );
 
   return next;
 }
 
 export async function getCachedQuote(symbol: string) {
-  const sql = await getPostgres();
-  if (!sql) {
+  const pool = await getPostgres();
+  if (!pool) {
     const store = await readJsonStore();
     const entry = store.quoteCache[symbol];
     if (!entry) return null;
     return new Date(entry.expiresAt).getTime() > Date.now() ? entry.quote : null;
   }
 
-  const rows = (await sql`
-    select symbol, quote, fetched_at, expires_at
-    from la1_quote_cache
-    where symbol = ${symbol}
-  `) as DbQuoteRow[];
-  const entry = rows[0];
+  const result = await pool.query<DbQuoteRow>(
+    "select symbol, quote, fetched_at, expires_at from la1_quote_cache where symbol = $1",
+    [symbol],
+  );
+  const entry = result.rows[0];
   if (!entry) return null;
   return new Date(entry.expires_at).getTime() > Date.now() ? (entry.quote as MarketQuote) : null;
 }
 
 export async function saveCachedQuote(symbol: string, quote: MarketQuote, ttlMs: number) {
-  const sql = await getPostgres();
+  const pool = await getPostgres();
   const item = {
     symbol,
     quote,
@@ -499,29 +508,32 @@ export async function saveCachedQuote(symbol: string, quote: MarketQuote, ttlMs:
     expiresAt: new Date(Date.now() + ttlMs).toISOString(),
   };
 
-  if (!sql) {
+  if (!pool) {
     return updateStore((store) => {
       store.quoteCache[symbol] = item;
       return store.quoteCache[symbol];
     });
   }
 
-  await sql`
+  await pool.query(
+    `
     insert into la1_quote_cache (symbol, quote, fetched_at, expires_at)
-    values (${symbol}, ${sql.json(quote)}, ${item.fetchedAt}, ${item.expiresAt})
+    values ($1, $2::jsonb, $3, $4)
     on conflict (symbol) do update set
       quote = excluded.quote,
       fetched_at = excluded.fetched_at,
       expires_at = excluded.expires_at
-  `;
+    `,
+    [symbol, JSON.stringify(quote), item.fetchedAt, item.expiresAt],
+  );
   return item;
 }
 
 export async function addNotification(notification: Omit<CloudNotification, "id" | "createdAt">) {
   await ensureUser(notification.userId);
-  const sql = await getPostgres();
+  const pool = await getPostgres();
 
-  if (!sql) {
+  if (!pool) {
     return updateStore((store) => {
       const item: CloudNotification = {
         ...notification,
@@ -539,28 +551,31 @@ export async function addNotification(notification: Omit<CloudNotification, "id"
     id: `${notification.userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: new Date().toISOString(),
   };
-  await sql`
-    insert into la1_notifications (id, user_id, title, detail, tone, read, created_at)
-    values (${item.id}, ${item.userId}, ${item.title}, ${item.detail}, ${item.tone}, ${item.read}, ${item.createdAt})
-  `;
-  await sql`
+  await pool.query(
+    "insert into la1_notifications (id, user_id, title, detail, tone, read, created_at) values ($1, $2, $3, $4, $5, $6, $7)",
+    [item.id, item.userId, item.title, item.detail, item.tone, item.read, item.createdAt],
+  );
+  await pool.query(
+    `
     delete from la1_notifications
-    where user_id = ${item.userId}
+    where user_id = $1
       and id not in (
         select id from la1_notifications
-        where user_id = ${item.userId}
+        where user_id = $1
         order by created_at desc
         limit 250
       )
-  `;
+    `,
+    [item.userId],
+  );
   return item;
 }
 
 export async function addScanRun(run: Omit<ScanRun, "id" | "createdAt">) {
   await ensureUser(run.userId);
-  const sql = await getPostgres();
+  const pool = await getPostgres();
 
-  if (!sql) {
+  if (!pool) {
     return updateStore((store) => {
       const item: ScanRun = {
         ...run,
@@ -578,27 +593,33 @@ export async function addScanRun(run: Omit<ScanRun, "id" | "createdAt">) {
     id: `scan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: new Date().toISOString(),
   };
-  await sql`
+  await pool.query(
+    `
     insert into la1_scan_runs (id, user_id, symbols, triggered, result, created_at)
-    values (${item.id}, ${item.userId}, ${sql.json(item.symbols)}, ${item.triggered}, ${sql.json(item.result)}, ${item.createdAt})
-  `;
-  await sql`
+    values ($1, $2, $3::jsonb, $4, $5::jsonb, $6)
+    `,
+    [item.id, item.userId, JSON.stringify(item.symbols), item.triggered, JSON.stringify(item.result), item.createdAt],
+  );
+  await pool.query(
+    `
     delete from la1_scan_runs
-    where user_id = ${item.userId}
+    where user_id = $1
       and id not in (
         select id from la1_scan_runs
-        where user_id = ${item.userId}
+        where user_id = $1
         order by created_at desc
         limit 100
       )
-  `;
+    `,
+    [item.userId],
+  );
   return item;
 }
 
 export async function addScheduledReport(report: Omit<ScheduledReport, "id" | "createdAt">) {
-  const sql = await getPostgres();
+  const pool = await getPostgres();
 
-  if (!sql) {
+  if (!pool) {
     return updateStore((store) => {
       const item: ScheduledReport = {
         ...report,
@@ -616,17 +637,20 @@ export async function addScheduledReport(report: Omit<ScheduledReport, "id" | "c
     id: `${report.type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: new Date().toISOString(),
   };
-  await sql`
+  await pool.query(
+    `
     insert into la1_scheduled_reports (id, report_type, title, detail, payload, created_at)
-    values (${item.id}, ${item.type}, ${item.title}, ${item.detail}, ${sql.json(item.payload)}, ${item.createdAt})
-  `;
-  await sql`
+    values ($1, $2, $3, $4, $5::jsonb, $6)
+    `,
+    [item.id, item.type, item.title, item.detail, JSON.stringify(item.payload), item.createdAt],
+  );
+  await pool.query(`
     delete from la1_scheduled_reports
     where id not in (
       select id from la1_scheduled_reports
       order by created_at desc
       limit 80
     )
-  `;
+  `);
   return item;
 }

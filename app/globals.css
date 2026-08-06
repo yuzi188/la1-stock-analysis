@@ -3635,3 +3635,64 @@ button:disabled {
     min-height: 260px;
   }
 }
+
+@media (max-width: 1023px) {
+  .command-center.terminal-shell {
+    padding-bottom: calc(96px + max(18px, env(safe-area-inset-bottom)));
+  }
+
+  .command-center .sidebar {
+    border-radius: 14px 14px 0 0;
+    bottom: 0;
+    box-shadow:
+      0 -14px 34px rgba(0, 0, 0, 0.56),
+      0 0 24px rgba(37, 153, 255, 0.18),
+      inset 0 1px 0 rgba(178, 229, 255, 0.16);
+    left: 0;
+    margin: 0;
+    padding: 9px 10px max(9px, env(safe-area-inset-bottom));
+    position: fixed;
+    right: 0;
+    top: auto;
+    z-index: 40;
+  }
+
+  .command-center .brand-block {
+    display: none;
+  }
+
+  .command-center .side-nav {
+    grid-auto-columns: minmax(78px, 22vw);
+    padding-bottom: 0;
+  }
+
+  .command-center .side-nav button {
+    min-height: 58px;
+  }
+
+  .command-center .workbench {
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .command-center.terminal-shell {
+    padding-bottom: calc(90px + max(14px, env(safe-area-inset-bottom)));
+  }
+
+  .command-center .sidebar {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .command-center .side-nav {
+    gap: 6px;
+    grid-auto-columns: minmax(72px, 24vw);
+  }
+
+  .command-center .side-nav button {
+    font-size: 0.64rem;
+    min-height: 54px;
+    padding: 7px 5px;
+  }
+}

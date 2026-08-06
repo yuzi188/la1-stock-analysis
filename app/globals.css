@@ -1934,6 +1934,18 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .topbar {
+    align-items: stretch;
+    grid-auto-rows: auto;
+    position: static;
+    z-index: auto;
+  }
+
+  .stock-search,
+  .sync-button {
+    width: 100%;
+  }
+
   .side-nav {
     grid-template-columns: 1fr;
   }
@@ -2071,9 +2083,9 @@ button:disabled {
   .topbar {
     border-radius: 7px;
     gap: 8px;
+    grid-template-columns: 1fr;
     min-height: 0;
     padding: 8px;
-    top: 8px;
   }
 
   .sync-state {
@@ -2335,6 +2347,7 @@ button:disabled {
   }
 
   .sync-button {
+    justify-content: center;
     padding: 0 10px;
     white-space: nowrap;
   }

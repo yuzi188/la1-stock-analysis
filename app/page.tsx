@@ -625,6 +625,8 @@ export default function Home() {
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [savedWatchlist, setSavedWatchlist] = useState<WatchItem[]>(watchlist);
   const [customWatchSymbol, setCustomWatchSymbol] = useState("");
+  const [watchQuotes, setWatchQuotes] = useState<Record<string, Quote>>({});
+  const [watchQuoteStatus, setWatchQuoteStatus] = useState("自動更新");
   const [marketSummary, setMarketSummary] = useState<OfficialMarketSummary | null>(null);
   const [marketLoading, setMarketLoading] = useState(false);
   const [alertSettings, setAlertSettings] = useState<AlertSettings>(() => {
@@ -795,8 +797,9 @@ export default function Home() {
   const watchMonitorRows = savedWatchlist.map((item) => {
     const ranking = rankingRows.find((row) => row.symbol === item.symbol);
     const isCurrentQuote = quote?.symbol === item.symbol;
-    const changePercent = isCurrentQuote ? quote?.changePercent ?? null : ranking?.changePercent ?? null;
-    const lastPrice = isCurrentQuote ? quote?.price ?? null : ranking?.close ?? null;
+    const liveQuote = watchQuotes[item.symbol] ?? (isCurrentQuote ? quote : null);
+    const changePercent = liveQuote?.changePercent ?? ranking?.changePercent ?? null;
+    const lastPrice = liveQuote?.price ?? ranking?.close ?? null;
     const triggeredUp = typeof changePercent === "number" && changePercent >= alertSettings.upPercent;
     const triggeredDown = typeof changePercent === "number" && changePercent <= -alertSettings.downPercent;
     const isTriggered = triggeredUp || triggeredDown;
@@ -807,7 +810,7 @@ export default function Home() {
       lastPrice,
       status: isTriggered ? "警報" : changePercent === null ? "待資料" : "正常",
       tone: isTriggered ? (triggeredUp ? "up" as const : "down" as const) : "neutral" as const,
-      note: isCurrentQuote ? "目前查詢個股" : ranking ? `${ranking.market} 官方市場榜單` : "點選同步單股資料",
+      note: liveQuote ? "\u81ea\u9078\u80a1\u5373\u6642\u5831\u50f9" : ranking ? `${ranking.market} \u5b98\u65b9\u5e02\u5834\u8cc7\u6599` : "\u7b49\u5f85\u81ea\u9078\u80a1\u5831\u50f9",
     };
   });
   const watchAlertCount = watchMonitorRows.filter((row) => row.status === "警報").length;
@@ -894,12 +897,63 @@ export default function Home() {
     }
   }, []);
 
+  const fetchWatchQuotes = useCallback(async () => {
+    const symbols = savedWatchlist.map((item) => item.symbol).filter(Boolean).slice(0, 20);
+    if (!symbols.length) {
+      setWatchQuotes({});
+      setWatchQuoteStatus("無自選股");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/quote-cache?ttlMs=30000", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ symbols }),
+      });
+      const payload = await response.json().catch(() => null) as {
+        ok?: boolean;
+        quotes?: { symbol: string; ok: boolean; quote?: Quote }[];
+      } | null;
+
+      if (!response.ok || !payload?.ok) {
+        setWatchQuoteStatus("報價待更新");
+        return;
+      }
+
+      setWatchQuotes((quotes) => {
+        const next = { ...quotes };
+        for (const item of payload.quotes ?? []) {
+          if (item.ok && item.quote) next[item.symbol] = item.quote;
+        }
+        return next;
+      });
+      setWatchQuoteStatus("30 秒更新");
+    } catch {
+      setWatchQuoteStatus("報價待更新");
+    }
+  }, [savedWatchlist]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       void fetchMarketSummary();
     }, 0);
     return () => window.clearTimeout(timer);
   }, [fetchMarketSummary]);
+
+  useEffect(() => {
+    if (!isSignedIn) return;
+    const firstTimer = window.setTimeout(() => {
+      void fetchWatchQuotes();
+    }, 0);
+    const refreshTimer = window.setInterval(() => {
+      void fetchWatchQuotes();
+    }, 30_000);
+    return () => {
+      window.clearTimeout(firstTimer);
+      window.clearInterval(refreshTimer);
+    };
+  }, [fetchWatchQuotes, isSignedIn]);
 
   useEffect(() => {
     window.localStorage.setItem("la1-alert-settings", JSON.stringify(alertSettings));
@@ -1262,6 +1316,15 @@ export default function Home() {
     void fetchQuote(nextSymbol);
   }
 
+  function removeWatchSymbol(symbolToRemove: string) {
+    setSavedWatchlist((items) => items.filter((item) => item.symbol !== symbolToRemove));
+    setWatchQuotes((quotes) => {
+      const next = { ...quotes };
+      delete next[symbolToRemove];
+      return next;
+    });
+  }
+
   const decisionPanel = (
     <Panel className={`decision-panel ${signal.tone}`} eyebrow="AI 投資決策卡" title={quote ? `${quote.name} ${quote.symbol}` : "輸入股票產生決策"} status={decisionAction} statusTone={signal.tone}>
       <div className={`decision-hero ${signal.tone}`}>
@@ -1609,7 +1672,7 @@ export default function Home() {
   );
 
   const watchPanel = (
-    <Panel className="watch-panel" eyebrow="自選股監控" title="AI 供應鏈" status={`${savedWatchlist.length} 檔`}>
+    <Panel className="watch-panel" eyebrow="自選股監控" title="AI 供應鏈" status={watchQuoteStatus}>
       <form className="watch-add" onSubmit={addWatchSymbol}>
         <input
           aria-label="新增自選股代碼"
@@ -1622,11 +1685,21 @@ export default function Home() {
         <button type="submit">加入</button>
       </form>
       {savedWatchlist.map((item) => (
-        <button className="watch-row" key={item.symbol} onClick={() => void fetchQuote(item.symbol)} type="button">
-          <strong>{item.symbol}</strong>
-          <span>{item.name}</span>
-          <small>{item.theme}</small>
-        </button>
+        <div className="watch-row-shell" key={item.symbol}>
+          <button className="watch-row" onClick={() => void fetchQuote(item.symbol)} type="button">
+            <strong>{item.symbol}</strong>
+            <span>{item.name}</span>
+            <small>{item.theme}</small>
+          </button>
+          <button
+            aria-label={`\u522a\u9664 ${item.symbol}`}
+            className="watch-remove"
+            onClick={() => removeWatchSymbol(item.symbol)}
+            type="button"
+          >
+            {"\u522a\u9664"}
+          </button>
+        </div>
       ))}
     </Panel>
   );
@@ -1641,18 +1714,28 @@ export default function Home() {
     >
       <div className="watch-monitor-list">
         {watchMonitorRows.map((item) => (
-          <button className={`watch-monitor-row ${item.tone}`} key={item.symbol} onClick={() => void fetchQuote(item.symbol)} type="button">
-            <div>
-              <strong>{item.symbol}</strong>
-              <span>{item.name}</span>
-              <small>{item.theme}</small>
-            </div>
-            <div>
-              <em>{formatPercent(item.changePercent)}</em>
-              <StatusPill tone={item.tone}>{item.status}</StatusPill>
-            </div>
-            <small>{item.lastPrice ? `收 ${formatNumber(item.lastPrice)} · ${item.note}` : item.note}</small>
-          </button>
+          <div className={`watch-monitor-row ${item.tone}`} key={item.symbol}>
+            <button className="watch-monitor-main" onClick={() => void fetchQuote(item.symbol)} type="button">
+              <div>
+                <strong>{item.symbol}</strong>
+                <span>{item.name}</span>
+                <small>{item.theme}</small>
+              </div>
+              <div>
+                <em>{formatPercent(item.changePercent)}</em>
+                <StatusPill tone={item.tone}>{item.status}</StatusPill>
+              </div>
+              <small>{item.lastPrice ? "\u6536 " + formatNumber(item.lastPrice) + " \u00b7 " + item.note : item.note}</small>
+            </button>
+            <button
+              aria-label={`\u522a\u9664 ${item.symbol}`}
+              className="watch-remove"
+              onClick={() => removeWatchSymbol(item.symbol)}
+              type="button"
+            >
+              {"\u522a\u9664"}
+            </button>
+          </div>
         ))}
       </div>
       <p className="settings-note">批次監控目前使用官方排行與目前查詢個股，不會大量消耗 Fugle 即時報價額度。</p>

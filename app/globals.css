@@ -1073,8 +1073,37 @@ button:disabled {
   grid-template-columns: 54px 64px minmax(0, 1fr);
 }
 
+.watch-row-shell {
+  align-items: center;
+  border-bottom: 1px solid rgba(138, 164, 166, 0.1);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+}
+
+.watch-row-shell .watch-row {
+  border-bottom: 0;
+}
+
 .watch-row strong {
   color: var(--green);
+}
+
+.watch-remove {
+  background: rgba(255, 99, 114, 0.1);
+  border: 1px solid rgba(255, 99, 114, 0.26);
+  border-radius: 6px;
+  color: #ffcbd0;
+  font-size: 0.72rem;
+  font-weight: 850;
+  min-height: 30px;
+  padding: 0 9px;
+  white-space: nowrap;
+}
+
+.watch-remove:hover {
+  background: rgba(255, 99, 114, 0.18);
 }
 
 .watch-add {
@@ -1472,6 +1501,18 @@ button:disabled {
   text-align: left;
 }
 
+.watch-monitor-main {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
 .watch-monitor-row.up {
   background: var(--green-soft);
   border-color: rgba(66, 223, 145, 0.28);
@@ -1484,11 +1525,13 @@ button:disabled {
   border-left-color: var(--red);
 }
 
-.watch-monitor-row > div {
+.watch-monitor-row > div,
+.watch-monitor-main > div {
   min-width: 0;
 }
 
-.watch-monitor-row > div:nth-child(2) {
+.watch-monitor-row > div:nth-child(2),
+.watch-monitor-main > div:nth-child(2) {
   align-items: end;
   display: grid;
   gap: 6px;
@@ -1513,7 +1556,8 @@ button:disabled {
   white-space: nowrap;
 }
 
-.watch-monitor-row small {
+.watch-monitor-row small,
+.watch-monitor-main small {
   color: var(--muted);
   display: block;
   font-size: 0.68rem;

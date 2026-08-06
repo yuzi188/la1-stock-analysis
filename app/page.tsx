@@ -2017,7 +2017,8 @@ export default function Home() {
           <>
             {sentimentPanel}
             {trendPanel}
-            {rankingPanel}
+            {homeQuotePanel}
+            {quotePanel}
           </>
         );
       case "indices":

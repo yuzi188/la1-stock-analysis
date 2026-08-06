@@ -4084,3 +4084,31 @@ button:disabled {
     padding: 7px;
   }
 }
+
+@media (min-width: 1024px) {
+  .command-center .page-pulse .sentiment-panel,
+  .command-center .page-pulse .trend-panel {
+    grid-column: span 6;
+    grid-row: span 2;
+  }
+
+  .command-center .page-pulse .home-quote-panel {
+    grid-column: span 4;
+  }
+
+  .command-center .page-pulse .quote-panel {
+    grid-column: span 8;
+  }
+}
+
+@media (max-width: 1023px) {
+  .command-center .page-pulse .sentiment-panel,
+  .command-center .page-pulse .home-quote-panel {
+    grid-column: span 3;
+  }
+
+  .command-center .page-pulse .trend-panel,
+  .command-center .page-pulse .quote-panel {
+    grid-column: 1 / -1;
+  }
+}

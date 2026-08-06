@@ -147,6 +147,44 @@ type OfficialMarketSummary = {
   generatedAt: string;
 };
 
+type GeopoliticalEvent = {
+  id: string;
+  title: string;
+  url: string;
+  domain: string;
+  sourceCountry: string;
+  publishedAt: string | null;
+  tone: number | null;
+  severity: "high" | "medium" | "low";
+  theme: string;
+  marketImpact: string;
+  source: string;
+};
+
+type GeopoliticalHotspot = {
+  name: string;
+  count: number;
+  severity: "high" | "medium" | "low";
+};
+
+type GeopoliticalSituation = {
+  riskScore: number;
+  stance: string;
+  events: GeopoliticalEvent[];
+  hotspots: GeopoliticalHotspot[];
+  worldMonitor: {
+    configured: boolean;
+    status: "ready" | "needs_key";
+    dashboardUrl: string;
+    repositoryUrl: string;
+    apiBaseUrl: string;
+    mcpUrl: string;
+    note: string;
+  };
+  generatedAt: string;
+  source: string;
+};
+
 type ContextResponse =
   | { ok: true; context: MarketContext }
   | { ok: false; error: string; code?: string };
@@ -164,6 +202,10 @@ type AnalyzeResponse =
 
 type MarketSummaryResponse =
   | { ok: true; summary: OfficialMarketSummary }
+  | { ok: false; error: string; code?: string };
+
+type GeopoliticsResponse =
+  | { ok: true; situation: GeopoliticalSituation }
   | { ok: false; error: string; code?: string };
 
 type PageKey =
@@ -629,6 +671,8 @@ export default function Home() {
   const [watchQuoteStatus, setWatchQuoteStatus] = useState("自動更新");
   const [marketSummary, setMarketSummary] = useState<OfficialMarketSummary | null>(null);
   const [marketLoading, setMarketLoading] = useState(false);
+  const [geopolitics, setGeopolitics] = useState<GeopoliticalSituation | null>(null);
+  const [geopoliticsLoading, setGeopoliticsLoading] = useState(false);
   const [alertSettings, setAlertSettings] = useState<AlertSettings>(() => {
     if (typeof window === "undefined") return defaultAlertSettings;
     try {
@@ -929,6 +973,25 @@ export default function Home() {
     }
   }, []);
 
+  const fetchGeopolitics = useCallback(async () => {
+    setGeopoliticsLoading(true);
+    try {
+      const response = await fetch("/api/geopolitics", { cache: "no-store" });
+      const payload = (await response.json()) as GeopoliticsResponse;
+
+      if (!payload.ok) {
+        setError(payload.error);
+        return;
+      }
+
+      setGeopolitics(payload.situation);
+    } catch {
+      setError("\u570b\u969b\u5c40\u52e2\u8cc7\u6599\u66ab\u6642\u7121\u6cd5\u8f09\u5165\u3002");
+    } finally {
+      setGeopoliticsLoading(false);
+    }
+  }, []);
+
   const fetchWatchQuotes = useCallback(async () => {
     const symbols = savedWatchlist.map((item) => item.symbol).filter(Boolean).slice(0, 20);
     if (!symbols.length) {
@@ -968,10 +1031,10 @@ export default function Home() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void fetchMarketSummary();
+      void Promise.all([fetchMarketSummary(), fetchGeopolitics()]);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [fetchMarketSummary]);
+  }, [fetchGeopolitics, fetchMarketSummary]);
 
   useEffect(() => {
     if (!isSignedIn) return;
@@ -1722,6 +1785,109 @@ export default function Home() {
     </Panel>
   );
 
+  const geopoliticalPanel = (
+    <Panel
+      className="geopolitics-panel"
+      eyebrow="\u570b\u969b\u5c40\u52e2"
+      title={geopolitics?.stance ?? "\u5168\u7403\u98a8\u96aa\u76e3\u63a7"}
+      status={geopolitics ? `\u98a8\u96aa ${geopolitics.riskScore}/100` : geopoliticsLoading ? "\u8f09\u5165\u4e2d" : "\u5f85\u540c\u6b65"}
+      statusTone={geopolitics && geopolitics.riskScore >= 70 ? "warn" : geopolitics && geopolitics.riskScore >= 52 ? "neutral" : "up"}
+    >
+      <div className="situation-hero">
+        <div>
+          <span>GDELT</span>
+          <strong>{geopolitics ? "\u8fd1 24 \u5c0f\u6642\u4e8b\u4ef6" : "\u5f85\u63a5\u6536\u8cc7\u6599"}</strong>
+          <small>{geopolitics?.source ?? "GDELT DOC 2.0"}</small>
+        </div>
+        <div>
+          <span>World Monitor</span>
+          <strong>{geopolitics?.worldMonitor.configured ? "\u5df2\u914d\u7f6e" : "\u53ef\u63a5\u5165"}</strong>
+          <small>{geopolitics?.worldMonitor.configured ? "API/MCP ready" : "\u9700 WORLDMONITOR_API_KEY"}</small>
+        </div>
+      </div>
+      <div className="hotspot-grid">
+        {(geopolitics?.hotspots.length
+          ? geopolitics.hotspots
+          : [
+              { name: "\u53f0\u6d77 / \u5357\u6d77", count: 0, severity: "medium" as const },
+              { name: "\u4e2d\u6771 / \u7d05\u6d77", count: 0, severity: "medium" as const },
+              { name: "AI / \u534a\u5c0e\u9ad4", count: 0, severity: "low" as const },
+            ]
+        ).map((item) => (
+          <div className={`hotspot-chip ${item.severity}`} key={item.name}>
+            <strong>{item.name}</strong>
+            <span>{item.count ? `${item.count} \u5247` : "\u5f85\u8cc7\u6599"}</span>
+          </div>
+        ))}
+      </div>
+      <div className="world-monitor-links" data-no-card-zoom="true">
+        <a href={geopolitics?.worldMonitor.dashboardUrl ?? "https://www.worldmonitor.app/"} target="_blank">
+          World Monitor
+        </a>
+        <a href={geopolitics?.worldMonitor.repositoryUrl ?? "https://github.com/tncsharetool/worldmonitor"} target="_blank">
+          GitHub
+        </a>
+      </div>
+    </Panel>
+  );
+
+  const situationFeedPanel = (
+    <Panel
+      className="situation-feed-panel"
+      eyebrow="\u5373\u6642\u570b\u969b\u4e8b\u4ef6"
+      title={geopolitics?.events.length ? "\u5e02\u5834\u76f8\u95dc\u8ffd\u8e64" : "\u7b49\u5f85 GDELT"}
+      status={geopolitics ? "\u514d\u8cbb\u516c\u958b API" : "\u5f85\u540c\u6b65"}
+      statusTone={geopolitics ? "up" : "neutral"}
+    >
+      <div className="situation-list">
+        {(geopolitics?.events.length
+          ? geopolitics.events.slice(0, 6)
+          : [
+              {
+                id: "empty-situation",
+                title: "\u540c\u6b65\u5f8c\u986f\u793a\u6230\u722d\u3001\u80fd\u6e90\u3001\u822a\u904b\u8207\u534a\u5c0e\u9ad4\u76f8\u95dc\u570b\u969b\u4e8b\u4ef6\u3002",
+                url: "",
+                domain: "GDELT",
+                sourceCountry: "",
+                publishedAt: null,
+                tone: null,
+                severity: "low" as const,
+                theme: "\u570b\u969b\u5c40\u52e2",
+                marketImpact: "\u7528\u65bc\u8f14\u52a9\u5224\u65b7\u53f0\u80a1\u958b\u76e4\u98a8\u96aa\u8207\u4f9b\u61c9\u93c8\u58d3\u529b\u3002",
+                source: "GDELT DOC 2.0",
+              },
+            ]
+        ).map((item) => {
+          const content = (
+            <>
+              <div>
+                <span>{item.theme}</span>
+                <strong>{item.title}</strong>
+                <small>{item.marketImpact}</small>
+              </div>
+              <div>
+                <StatusPill tone={item.severity === "high" ? "warn" : item.severity === "medium" ? "neutral" : "up"}>
+                  {item.severity === "high" ? "\u9ad8" : item.severity === "medium" ? "\u4e2d" : "\u4f4e"}
+                </StatusPill>
+                <small>{item.publishedAt ? formatTime(item.publishedAt) : item.domain || item.source}</small>
+              </div>
+            </>
+          );
+
+          return item.url ? (
+            <a className={`situation-item ${item.severity}`} href={item.url} key={item.id} target="_blank">
+              {content}
+            </a>
+          ) : (
+            <div className={`situation-item ${item.severity}`} key={item.id}>
+              {content}
+            </div>
+          );
+        })}
+      </div>
+    </Panel>
+  );
+
   const aiPanel = (
     <Panel className="ai-panel" eyebrow="AI 分析中心" title={analysis?.stance ?? "等待分析"} status={analysisMeta?.model ?? "OpenAI"}>
       <p>{analysis?.conclusion ?? "查詢個股後，可產生條件式研究摘要、風險提醒與下一步檢查清單。"}</p>
@@ -1972,6 +2138,8 @@ export default function Home() {
         <div><strong>TWSE OpenAPI</strong><span>上市月營收 / 新聞</span><StatusPill tone={context ? "up" : "neutral"}>{context ? "已接" : "待查詢"}</StatusPill></div>
         <div><strong>OpenAI</strong><span>研究摘要 / 情境推演</span><StatusPill tone={analysis ? "up" : "neutral"}>{analysis ? "已產生" : "待分析"}</StatusPill></div>
         <div><strong>法人買賣超</strong><span>TWSE T86 / TPEx 3insti</span><StatusPill tone={marketSummary ? "up" : "neutral"}>{marketSummary ? "已接官方" : "載入中"}</StatusPill></div>
+        <div><strong>GDELT</strong><span>國際局勢 / 近即時新聞事件</span><StatusPill tone={geopolitics ? "up" : "neutral"}>{geopolitics ? "已接" : "待同步"}</StatusPill></div>
+        <div><strong>World Monitor</strong><span>全球情報儀表板 / API MCP</span><StatusPill tone={geopolitics?.worldMonitor.configured ? "up" : "warn"}>{geopolitics?.worldMonitor.configured ? "已配置" : "待 KEY"}</StatusPill></div>
       </div>
     </Panel>
   );
@@ -1990,6 +2158,7 @@ export default function Home() {
             {rankingPanel}
             {downRankingPanel}
             {globalPanel}
+            {geopoliticalPanel}
             {newsPanel}
             {watchMonitorPanel}
           </>
@@ -1999,6 +2168,7 @@ export default function Home() {
           <>
             {morningPanel}
             {globalPanel}
+            {geopoliticalPanel}
             {themeRadarPanel}
             {watchMonitorPanel}
           </>
@@ -2085,6 +2255,8 @@ export default function Home() {
           <>
             {globalPanel}
             {economyPanel}
+            {geopoliticalPanel}
+            {situationFeedPanel}
           </>
         );
       case "data":
@@ -2274,8 +2446,8 @@ export default function Home() {
               value={symbol}
             />
           </form>
-          <button className="sync-button" disabled={loading || marketLoading} onClick={() => void Promise.all([fetchQuote(), fetchMarketSummary()])} type="button">
-            {loading || marketLoading ? "同步中" : "同步資料"}
+          <button className="sync-button" disabled={loading || marketLoading || geopoliticsLoading} onClick={() => void Promise.all([fetchQuote(), fetchMarketSummary(), fetchGeopolitics()])} type="button">
+            {loading || marketLoading || geopoliticsLoading ? "同步中" : "同步資料"}
           </button>
         </header>
 

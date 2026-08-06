@@ -11,6 +11,7 @@ Implementation scope:
 - Mobile dashboard uses compact multi-column card layout so cards resemble the horizontal command-center density and can be tapped to enlarge.
 - Mobile bottom dock keeps the homepage entry visible and labels the scrollable section as menu.
 - Market Pulse page now shows only the currently selected stock or ETF: sentiment, trend, live quote, and K-line detail. It no longer shows unrelated market ranking cards.
+- International Market now includes a geopolitical situation panel using a GDELT-backed API endpoint plus World Monitor integration status and links.
 - Click-to-enlarge modal for dashboard cards.
 - Existing mobile layout and core data features preserved.
 

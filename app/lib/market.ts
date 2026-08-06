@@ -132,6 +132,46 @@ export type OfficialMarketSummary = {
   generatedAt: string;
 };
 
+export type GeopoliticalEvent = {
+  id: string;
+  title: string;
+  url: string;
+  domain: string;
+  sourceCountry: string;
+  publishedAt: string | null;
+  tone: number | null;
+  severity: "high" | "medium" | "low";
+  theme: string;
+  marketImpact: string;
+  source: string;
+};
+
+export type GeopoliticalHotspot = {
+  name: string;
+  count: number;
+  severity: "high" | "medium" | "low";
+};
+
+export type WorldMonitorStatus = {
+  configured: boolean;
+  status: "ready" | "needs_key";
+  dashboardUrl: string;
+  repositoryUrl: string;
+  apiBaseUrl: string;
+  mcpUrl: string;
+  note: string;
+};
+
+export type GeopoliticalSituation = {
+  riskScore: number;
+  stance: string;
+  events: GeopoliticalEvent[];
+  hotspots: GeopoliticalHotspot[];
+  worldMonitor: WorldMonitorStatus;
+  generatedAt: string;
+  source: string;
+};
+
 type FugleQuote = {
   symbol?: string;
   name?: string;
@@ -196,6 +236,21 @@ type YahooChartResponse = {
   };
 };
 
+type GdeltArticle = {
+  url?: string;
+  title?: string;
+  seendate?: string;
+  socialimage?: string;
+  domain?: string;
+  language?: string;
+  sourcecountry?: string;
+  tone?: number | string;
+};
+
+type GdeltDocResponse = {
+  articles?: GdeltArticle[];
+};
+
 type CacheEntry<T> = {
   value: T;
   expiresAt: number;
@@ -248,6 +303,10 @@ function parseNumber(value: string | number | null | undefined) {
 function average(values: number[]) {
   if (!values.length) return null;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function signedChange(value: string | number | null | undefined) {
@@ -587,6 +646,156 @@ async function getMacroFactors(): Promise<MacroFactorContext[]> {
       source: "U.S. Treasury Daily Treasury Yield Curve Rates",
     },
   ];
+}
+
+const geopoliticalQuery = "war";
+
+function parseGdeltDate(value: string | undefined) {
+  if (!value) return null;
+  if (/^\d{14}$/.test(value)) {
+    const year = value.slice(0, 4);
+    const month = value.slice(4, 6);
+    const day = value.slice(6, 8);
+    const hour = value.slice(8, 10);
+    const minute = value.slice(10, 12);
+    const second = value.slice(12, 14);
+    return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`).toISOString();
+  }
+  if (/^\d{8}T\d{6}Z$/.test(value)) {
+    return new Date(`${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T${value.slice(9, 11)}:${value.slice(11, 13)}:${value.slice(13, 15)}Z`).toISOString();
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function classifyGeopoliticalEvent(title: string, tone: number | null) {
+  const normalized = title.toLowerCase();
+  const hasHighRiskWord = /missile|strike|attack|war|invasion|sanction|explosion|blockade|drone/.test(normalized);
+  const hasSupplyChainWord = /taiwan|semiconductor|chip|shipping|red sea|south china sea|hormuz|oil|energy/.test(normalized);
+  const severity =
+    hasHighRiskWord || (tone !== null && tone <= -6)
+      ? "high"
+      : hasSupplyChainWord || (tone !== null && tone <= -3)
+        ? "medium"
+        : "low";
+  const theme = hasSupplyChainWord
+    ? "\u4f9b\u61c9\u93c8 / \u80fd\u6e90"
+    : hasHighRiskWord
+      ? "\u5730\u7de3\u885d\u7a81"
+      : "\u570b\u969b\u65b0\u805e";
+  const marketImpact = hasSupplyChainWord
+    ? "\u7559\u610f\u822a\u904b\u3001\u80fd\u6e90\u3001AI \u4f9b\u61c9\u93c8\u8207\u53f0\u80a1\u6b0a\u503c\u80a1\u58d3\u529b"
+    : severity === "high"
+      ? "\u98a8\u96aa\u5347\u6eab\uff0c\u77ed\u7dda\u9700\u89c0\u5bdf VIX\u3001\u7f8e\u5035\u8207\u7f8e\u5143"
+      : "\u8ffd\u8e64\u65b0\u805e\u91cf\u662f\u5426\u653e\u5927\uff0c\u6682\u5217\u89c0\u5bdf";
+
+  return { severity, theme, marketImpact };
+}
+
+function inferHotspot(title: string, sourceCountry: string) {
+  const text = `${title} ${sourceCountry}`.toLowerCase();
+  if (/taiwan|taiwan strait|china|south china sea/.test(text)) return "\u53f0\u6d77 / \u5357\u6d77";
+  if (/israel|gaza|iran|red sea|hormuz|yemen/.test(text)) return "\u4e2d\u6771 / \u7d05\u6d77";
+  if (/russia|ukraine|nato|europe/.test(text)) return "\u6b50\u6d32 / \u4fc4\u70cf";
+  if (/oil|energy|opec/.test(text)) return "\u80fd\u6e90";
+  if (/shipping|port|vessel|freight/.test(text)) return "\u822a\u904b";
+  if (/semiconductor|chip|ai|nvidia/.test(text)) return "AI / \u534a\u5c0e\u9ad4";
+  return sourceCountry || "\u5168\u7403";
+}
+
+function buildGeopoliticalHotspots(events: GeopoliticalEvent[]) {
+  const counts = new Map<string, { count: number; high: number; medium: number }>();
+  for (const event of events) {
+    const name = inferHotspot(event.title, event.sourceCountry);
+    const existing = counts.get(name) ?? { count: 0, high: 0, medium: 0 };
+    existing.count += 1;
+    if (event.severity === "high") existing.high += 1;
+    if (event.severity === "medium") existing.medium += 1;
+    counts.set(name, existing);
+  }
+
+  return [...counts.entries()]
+    .map(([name, item]) => ({
+      name,
+      count: item.count,
+      severity: item.high ? "high" as const : item.medium ? "medium" as const : "low" as const,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+}
+
+function getWorldMonitorStatus(): WorldMonitorStatus {
+  const configured = Boolean(process.env.WORLDMONITOR_API_KEY || process.env.WM_API_KEY);
+  return {
+    configured,
+    status: configured ? "ready" : "needs_key",
+    dashboardUrl: "https://www.worldmonitor.app/",
+    repositoryUrl: "https://github.com/tncsharetool/worldmonitor",
+    apiBaseUrl: "https://api.worldmonitor.app",
+    mcpUrl: "https://worldmonitor.app/mcp",
+    note: configured
+      ? "World Monitor key configured; ready for API/MCP expansion."
+      : "World Monitor dashboard linked; API/MCP calls need WORLDMONITOR_API_KEY or WM_API_KEY.",
+  };
+}
+
+export async function getGeopoliticalSituation(): Promise<GeopoliticalSituation> {
+  return cached("geopolitical-situation:v1", 15 * 60_000, async () => {
+    const params = new URLSearchParams({
+      query: `(${geopoliticalQuery})`,
+      mode: "ArtList",
+      format: "json",
+      maxrecords: "16",
+      timespan: "24h",
+      sort: "hybridrel",
+    });
+    const response = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params}`, {
+      cache: "no-store",
+      headers: { "User-Agent": "LA1-Stock-Analysis/1.0" },
+    }).catch(() => null);
+
+    const payload = response?.ok ? (await response.json().catch(() => ({ articles: [] }))) as GdeltDocResponse : { articles: [] };
+    const events = (payload.articles ?? []).slice(0, 12).map((article, index) => {
+      const title = article.title ?? "Global situation update";
+      const tone = parseNumber(article.tone);
+      const classification = classifyGeopoliticalEvent(title, tone);
+      return {
+        id: `${article.seendate ?? "gdelt"}-${index}`,
+        title,
+        url: article.url ?? "",
+        domain: article.domain ?? "",
+        sourceCountry: article.sourcecountry ?? "",
+        publishedAt: parseGdeltDate(article.seendate),
+        tone,
+        severity: classification.severity,
+        theme: classification.theme,
+        marketImpact: classification.marketImpact,
+        source: "GDELT DOC 2.0",
+      };
+    });
+    const highCount = events.filter((event) => event.severity === "high").length;
+    const mediumCount = events.filter((event) => event.severity === "medium").length;
+    const averageTone = average(events.map((event) => event.tone).filter((tone): tone is number => tone !== null)) ?? 0;
+    const riskScore = Math.round(clamp(38 + highCount * 7 + mediumCount * 4 + Math.max(0, -averageTone) * 2.5, 0, 100));
+
+    return {
+      riskScore,
+      stance:
+        riskScore >= 70
+          ? "\u98a8\u96aa\u5347\u6eab"
+          : riskScore >= 52
+            ? "\u4e2d\u6027\u504f\u8b39\u614e"
+            : "\u4f4e\u5ea6\u76e3\u63a7",
+      events,
+      hotspots: buildGeopoliticalHotspots(events),
+      worldMonitor: getWorldMonitorStatus(),
+      generatedAt: new Date().toISOString(),
+      source: response?.ok
+        ? "GDELT DOC 2.0 + World Monitor integration metadata"
+        : `GDELT unavailable${response ? ` (${response.status})` : ""} + World Monitor integration metadata`,
+    };
+  });
 }
 
 function inferPattern(candles: Candle[], ma5: number | null, ma20: number | null, ma60: number | null) {

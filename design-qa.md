@@ -12,6 +12,7 @@ Implementation scope:
 - Mobile bottom dock keeps the homepage entry visible and labels the scrollable section as menu.
 - Market Pulse page now shows only the currently selected stock or ETF: sentiment, trend, live quote, and K-line detail. It no longer shows unrelated market ranking cards.
 - International Market now includes a geopolitical situation panel using a GDELT-backed API endpoint plus World Monitor integration status and links.
+- Menu pages were audited so each page now keeps only functionally relevant cards; unrelated quote, ranking, source, and news panels were removed from narrow-purpose pages.
 - Click-to-enlarge modal for dashboard cards.
 - Existing mobile layout and core data features preserved.
 

@@ -2194,7 +2194,6 @@ export default function Home() {
       case "indices":
         return (
           <>
-            {trendPanel}
             {globalPanel}
             <Panel className="breadth-panel" eyebrow="台股指數" title="加權 / 櫃買" status={marketSummary ? "已接官方" : "載入中"}>
               <div className="compact-row">
@@ -2222,8 +2221,7 @@ export default function Home() {
         return (
           <>
             {sectorPanel}
-            {rankingPanel}
-            {quotePanel}
+            {themeRadarPanel}
           </>
         );
       case "themes":
@@ -2231,23 +2229,18 @@ export default function Home() {
           <>
             {themeRadarPanel}
             {sectorPanel}
-            {rankingPanel}
-            {downRankingPanel}
           </>
         );
       case "compare":
         return (
           <>
             {comparePanel}
-            {decisionPanel}
-            {quotePanel}
           </>
         );
       case "institutions":
         return (
           <>
             {institutionPanel}
-            {sourcePanel}
           </>
         );
       case "global":
@@ -2264,8 +2257,6 @@ export default function Home() {
           <>
             {sourcePanel}
             {cloudPanel}
-            {quotePanel}
-            {newsPanel}
           </>
         );
       case "ai":
@@ -2275,7 +2266,6 @@ export default function Home() {
             {signalPanel}
             {aiPanel}
             {quotePanel}
-            {sourcePanel}
           </>
         );
       case "risk":
@@ -2286,8 +2276,6 @@ export default function Home() {
             {alertSettingsPanel}
             {signalPanel}
             {sentimentPanel}
-            {institutionPanel}
-            {sourcePanel}
           </>
         );
       case "notifications":
@@ -2302,8 +2290,6 @@ export default function Home() {
         return (
           <>
             {notesPanel}
-            {decisionPanel}
-            {quotePanel}
           </>
         );
       case "news":
@@ -2320,7 +2306,6 @@ export default function Home() {
       case "settings":
         return (
           <>
-            {sourcePanel}
             {cloudPanel}
             {alertSettingsPanel}
             <Panel className="ai-panel" eyebrow="產品護欄" title="大眾版投資智能體" status="已啟用">

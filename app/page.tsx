@@ -1501,6 +1501,36 @@ export default function Home() {
     </Panel>
   );
 
+  const homeQuotePanel = (
+    <Panel
+      className={`home-quote-panel ${tone}`}
+      eyebrow={"Live Quote"}
+      title={quote ? `${quote.name} ${quote.symbol}` : "\u500b\u80a1\u5373\u6642"}
+      status={quote?.source ?? "Fugle"}
+      statusTone={tone === "up" ? "up" : tone === "down" ? "down" : "neutral"}
+    >
+      <div className="home-quote-price">
+        <strong>{formatNumber(quote?.price)}</strong>
+        <div>
+          <span>{formatNumber(quote?.change)}</span>
+          <em>{formatNumber(quote?.changePercent)}%</em>
+        </div>
+      </div>
+      <div className="home-quote-grid">
+        <div><span>{"\u958b"}</span><strong>{formatNumber(quote?.openPrice)}</strong></div>
+        <div><span>{"\u9ad8"}</span><strong>{formatNumber(quote?.highPrice)}</strong></div>
+        <div><span>{"\u4f4e"}</span><strong>{formatNumber(quote?.lowPrice)}</strong></div>
+        <div><span>{"\u91cf"}</span><strong>{formatVolume(quote?.volume)}</strong></div>
+      </div>
+      <div className="home-quote-footer">
+        <span>{quote ? formatTime(quote.updatedAt) : "\u8acb\u67e5\u8a62\u80a1\u7968"}</span>
+        <button disabled={loading} onClick={() => void fetchQuote()} type="button">
+          {loading ? "\u66f4\u65b0\u4e2d" : "\u66f4\u65b0"}
+        </button>
+      </div>
+    </Panel>
+  );
+
   const sentimentPanel = (
     <Panel className="sentiment-panel" eyebrow="市場情緒總覽" title={score >= 60 ? "偏熱" : score <= 40 ? "偏冷" : "中性"} status={context ? "由個股暫估" : "待查詢"}>
       <Gauge label="情緒分數" value={score} />
@@ -1953,6 +1983,7 @@ export default function Home() {
           <>
             {sentimentPanel}
             {trendPanel}
+            {homeQuotePanel}
             {institutionPanel}
             {breadthPanel}
             {sectorPanel}

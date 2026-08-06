@@ -7,7 +7,9 @@ Implementation scope:
 - Bottom dock navigation for desktop widths.
 - Mobile cockpit visual treatment with the same background, glass panels, and horizontal page navigation.
 - Overview page rearranged into a practical market dashboard: sentiment, trend, institution, breadth, sector, gainers, losers, global, news, and watchlist.
+- Overview page includes a Fugle-backed live quote card for the currently searched stock.
 - Mobile dashboard uses compact multi-column card layout so cards resemble the horizontal command-center density and can be tapped to enlarge.
+- Mobile bottom dock keeps the homepage entry visible and labels the scrollable section as menu.
 - Click-to-enlarge modal for dashboard cards.
 - Existing mobile layout and core data features preserved.
 

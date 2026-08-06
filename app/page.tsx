@@ -1957,10 +1957,10 @@ export default function Home() {
             {breadthPanel}
             {sectorPanel}
             {rankingPanel}
-            {watchMonitorPanel}
+            {downRankingPanel}
             {globalPanel}
-            {decisionPanel}
             {newsPanel}
+            {watchMonitorPanel}
           </>
         );
       case "morning":

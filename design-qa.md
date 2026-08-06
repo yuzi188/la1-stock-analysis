@@ -5,6 +5,7 @@ Source visual: user-provided sci-fi command center dashboard reference.
 Implementation scope:
 - Desktop cockpit background and central command screen frame.
 - Bottom dock navigation for desktop widths.
+- Mobile cockpit visual treatment with the same background, glass panels, and horizontal page navigation.
 - Click-to-enlarge modal for dashboard cards.
 - Existing mobile layout and core data features preserved.
 

@@ -743,7 +743,7 @@ function getWorldMonitorStatus(): WorldMonitorStatus {
 export async function getGeopoliticalSituation(): Promise<GeopoliticalSituation> {
   return cached("geopolitical-situation:v1", 15 * 60_000, async () => {
     const params = new URLSearchParams({
-      query: `(${geopoliticalQuery})`,
+      query: geopoliticalQuery,
       mode: "ArtList",
       format: "json",
       maxrecords: "16",

@@ -1,6 +1,6 @@
-# LA1台股分析室
+# LA1 台股分析室
 
-台股投資智能體原型。介面採用深色市場情報 dashboard，整合即時報價、K 線、均線、月營收、新聞、法人、排行、市場廣度與 AI 分析。
+給台股投資人使用的市場情報 dashboard。功能包含即時報價、K 線、均線、月營收、新聞、法人、市場廣度、國際市場、宏觀因子、AI 分析、自選股掃描、警報與雲端同步。
 
 ## 已接資料
 
@@ -24,6 +24,7 @@
 - `/api/quote-cache`
 - `/api/scan`
 - `/api/reports?type=morning`
+- `/api/reports?type=review`
 - `/api/notify`
 
 ## 環境變數
@@ -34,9 +35,12 @@
 FUGLE_API_KEY=
 OPENAI_API_KEY=
 OPENAI_MODEL=gpt-5.6-luna
+DATABASE_URL=
+POSTGRES_URL=
 LA1_DATA_FILE=.data/la1-store.json
 APP_BASE_URL=
 CRON_SECRET=
+LA1_SERVICE_ROLE=web
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 LINE_WEBHOOK_URL=
@@ -44,38 +48,43 @@ EMAIL_WEBHOOK_URL=
 NOTIFY_WEBHOOK_URL=
 ```
 
-## 產品化功能
-
-- 輕量會員模式：用 `x-la1-user-id` 同步用戶資料。
-- 雲端同步：自選股、投資筆記、警報設定、通知已讀狀態。
-- 後端快取：`/api/quote-cache` 會先讀伺服器快取，降低 Fugle 額度消耗。
-- 批次掃描：`/api/scan` 最多一次掃 20 檔自選股並寫入通知。
-- 通知通道：Telegram、LINE/Webhook、Email Webhook、通用 Webhook。
-- 排程摘要：`/api/reports` 產生開盤摘要或收盤復盤。
+`DATABASE_URL` 或 `POSTGRES_URL` 存在時，會員、自選股、筆記、警報、通知、快取、掃描紀錄與摘要報告會寫入 Postgres。沒有資料庫時會退回本機 JSON，方便開發測試。
 
 ## Railway 部署
 
-1. 將專案推到 GitHub。
-2. Railway 建立新專案，選擇 GitHub repo 或使用 CLI `railway up`。
-3. 在 Railway Variables 補上 `.env.example` 需要的環境變數。
-4. `railway.toml` 已指定 `pnpm run build` 與 `pnpm run start`。
-5. Railway Cron 可另外建立服務執行：
-   - 開盤摘要：`pnpm run cron:morning`
-   - 收盤復盤：`pnpm run cron:review`
+主要網站 service：
 
-Railway 官方文件目前支援從 GitHub 或 CLI 部署，Cron Schedule 可在服務 Settings 中設定 crontab。
+- `LA1_SERVICE_ROLE=web`
+- Start command：`pnpm run start`
+- Build command：`pnpm run build`
 
-## 開發
+開盤摘要 cron service：
+
+- `LA1_SERVICE_ROLE=cron-morning`
+- Start command：`pnpm run start`
+- Cron schedule 建議：`0 0 * * 1-5`
+- 台灣時間約每日交易日上午 08:00 執行
+
+收盤復盤 cron service：
+
+- `LA1_SERVICE_ROLE=cron-review`
+- Start command：`pnpm run start`
+- Cron schedule 建議：`0 7 * * 1-5`
+- 台灣時間約每日交易日下午 15:00 執行
+
+Railway cron 使用 UTC 時區，設定時間時要換算台灣時間。
+
+## 本地開發
 
 ```bash
 pnpm install
 pnpm run dev
 pnpm run build
-pnpm exec node --test tests/rendered-html.test.mjs
+pnpm test
 ```
 
-## 產品原則
+## 注意
 
-- 缺資料時顯示待接或載入中，不用 AI 補假行情、假法人、假新聞。
-- AI 輸出定位為研究摘要、情境推演與風險提醒，不做保證獲利的喊單。
-- 公開版需保留資料來源與風險提示。
+- AI 分析是投資研究輔助，不是保證獲利或買賣建議。
+- Yahoo Finance 非官方付費行情源，適合 dashboard 輔助觀察；正式商用可再接授權資料源。
+- 正式對大眾開放時，建議把簡易會員 ID 升級為完整 Auth 登入。

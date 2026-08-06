@@ -42,36 +42,19 @@ async function fetchFromWorker(path) {
   );
 }
 
-test("server-renders the paged LA1 dashboard shell", async () => {
+test("server-renders the phone auth gate before the dashboard", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>LA1台股分析室<\/title>/i);
-  assert.match(html, /LA1台股分析室/);
-  assert.match(html, /總覽首頁/);
-  assert.match(html, /開盤摘要/);
-  assert.match(html, /收盤復盤/);
-  assert.match(html, /市場脈動/);
-  assert.match(html, /主題雷達/);
-  assert.match(html, /股票比較/);
-  assert.match(html, /法人動向/);
-  assert.match(html, /AI 分析中心/);
-  assert.match(html, /通知中心/);
-  assert.match(html, /投資筆記/);
-  assert.match(html, /設定/);
-  assert.match(html, /AI 投資決策卡/);
-  assert.match(html, /操作結論/);
-  assert.match(html, /漲跌警報/);
-  assert.match(html, /上漲警報/);
-  assert.match(html, /下跌警報/);
-  assert.match(html, /市場情緒總覽/);
-  assert.match(html, /Live Quote/);
-  assert.match(html, /MA5/);
-  assert.match(html, /MA20/);
-  assert.match(html, /市場總覽指標/);
-  assert.doesNotMatch(html, /最新經濟數據/);
+  assert.match(html, /<title>LA1\u53f0\u80a1\u5206\u6790\u5ba4<\/title>/i);
+  assert.match(html, /auth-shell/);
+  assert.match(html, /LA1 \u53f0\u80a1\u5206\u6790\u5ba4/);
+  assert.match(html, /\u624b\u6a5f\u865f\u8a3b\u518a/);
+  assert.match(html, /\u767b\u5165/);
+  assert.match(html, /\u8a3b\u518a/);
+  assert.match(html, /0912345678/);
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|react-loading-skeleton/);
 });
 
@@ -100,6 +83,29 @@ test("analyze endpoint refuses to run without an OpenAI key", async () => {
   const json = await response.json();
   assert.equal(json.ok, false);
   assert.equal(json.code, "missing_openai_key");
+});
+
+test("phone auth endpoint creates a lightweight user", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test", String(process.pid) + "-" + String(Date.now()) + "-auth");
+  const { default: worker } = await import(workerUrl.href);
+  const response = await worker.fetch(
+    new Request("http://localhost/api/auth", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ mode: "register", phone: "0912-345-678", name: "Test User" }),
+    }),
+    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
+    { waitUntil() {}, passThroughOnException() {} },
+  );
+
+  assert.equal(response.status, 200);
+  const json = await response.json();
+  assert.equal(json.ok, true);
+  assert.equal(json.mode, "register");
+  assert.equal(json.phone, "0912***678");
+  assert.equal(json.user.id, "phone-0912345678");
+  assert.equal(json.user.name, "Test User");
 });
 
 test("cloud sync endpoint saves lightweight user data", async () => {

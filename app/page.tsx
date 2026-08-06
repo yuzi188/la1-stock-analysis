@@ -642,7 +642,7 @@ export default function Home() {
     stop: "",
     target: "",
   });
-  const [cloudUserId] = useState(() => {
+  const [cloudUserId, setCloudUserId] = useState(() => {
     if (typeof window === "undefined") return "demo-user";
     const existing = window.localStorage.getItem("la1-user-id");
     if (existing) return existing;
@@ -650,6 +650,18 @@ export default function Home() {
     window.localStorage.setItem("la1-user-id", created);
     return created;
   });
+  const [isSignedIn, setIsSignedIn] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("la1-auth-user") === "1";
+  });
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authPhone, setAuthPhone] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return window.localStorage.getItem("la1-auth-phone") ?? "";
+  });
+  const [authName, setAuthName] = useState("");
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authMessage, setAuthMessage] = useState("");
   const [cloudProfile, setCloudProfile] = useState({ email: "", name: "LA1 用戶" });
   const [cloudStatus, setCloudStatus] = useState("尚未同步");
 
@@ -921,6 +933,57 @@ export default function Home() {
 
   function deleteInvestmentNote(id: string) {
     setInvestmentNotes((notes) => notes.filter((note) => note.id !== id));
+  }
+
+  async function submitAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const phone = authPhone.replace(/\D/g, "");
+    if (phone.length < 8) {
+      setAuthMessage("\u8acb\u8f38\u5165\u6b63\u78ba\u624b\u6a5f\u865f\u78bc\u3002");
+      return;
+    }
+
+    setAuthBusy(true);
+    setAuthMessage(authMode === "register" ? "\u8a3b\u518a\u4e2d..." : "\u767b\u5165\u4e2d...");
+    try {
+      const response = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          mode: authMode,
+          phone: authPhone,
+          name: authName,
+        }),
+      });
+      const payload = await response.json().catch(() => null) as {
+        ok?: boolean;
+        error?: string;
+        phone?: string;
+        user?: { id: string; name?: string; email?: string | null };
+      } | null;
+
+      if (!response.ok || !payload?.ok || !payload.user?.id) {
+        setAuthMessage(payload?.error ?? "\u767b\u5165\u5931\u6557\uff0c\u8acb\u91cd\u65b0\u8f38\u5165\u624b\u6a5f\u865f\u3002");
+        return;
+      }
+
+      window.localStorage.setItem("la1-user-id", payload.user.id);
+      window.localStorage.setItem("la1-auth-user", "1");
+      window.localStorage.setItem("la1-auth-phone", phone);
+      setCloudUserId(payload.user.id);
+      setCloudProfile({
+        email: payload.user.email ?? "",
+        name: payload.user.name ?? (authName || "LA1 \u7528\u6236"),
+      });
+      setCloudStatus("\u5df2\u767b\u5165 " + (payload.phone ?? phone));
+      setIsSignedIn(true);
+      setAuthMessage("\u767b\u5165\u6210\u529f");
+      window.setTimeout(() => void pullCloudSnapshot(), 0);
+    } catch {
+      setAuthMessage("\u767b\u5165\u670d\u52d9\u66ab\u6642\u7121\u6cd5\u9023\u7dda\u3002");
+    } finally {
+      setAuthBusy(false);
+    }
   }
 
   async function saveCloudProfile() {
@@ -1897,6 +1960,71 @@ export default function Home() {
       default:
         return null;
     }
+  }
+
+  if (!isSignedIn) {
+    return (
+      <main className="auth-shell">
+        <section className="auth-card">
+          <div className="auth-brand">
+            <span className="live-dot" />
+            <div>
+              <strong>{"LA1 \u53f0\u80a1\u5206\u6790\u5ba4"}</strong>
+              <p>{"\u624b\u6a5f\u865f\u8a3b\u518a\u5f8c\u5373\u53ef\u540c\u6b65\u81ea\u9078\u80a1\u3001\u7b46\u8a18\u8207\u8b66\u5831\u8a2d\u5b9a\u3002"}</p>
+            </div>
+          </div>
+
+          <div className="auth-tabs" role="tablist" aria-label="member mode">
+            <button
+              className={authMode === "login" ? "active" : ""}
+              onClick={() => setAuthMode("login")}
+              type="button"
+            >
+              {"\u767b\u5165"}
+            </button>
+            <button
+              className={authMode === "register" ? "active" : ""}
+              onClick={() => setAuthMode("register")}
+              type="button"
+            >
+              {"\u8a3b\u518a"}
+            </button>
+          </div>
+
+          <form className="auth-form" onSubmit={submitAuth}>
+            <label>
+              <span>{"\u624b\u6a5f\u865f\u78bc"}</span>
+              <input
+                autoComplete="tel"
+                inputMode="tel"
+                onChange={(event) => setAuthPhone(event.target.value)}
+                placeholder="0912345678"
+                value={authPhone}
+              />
+            </label>
+
+            {authMode === "register" ? (
+              <label>
+                <span>{"\u986f\u793a\u540d\u7a31"}</span>
+                <input
+                  autoComplete="name"
+                  onChange={(event) => setAuthName(event.target.value)}
+                  placeholder="LA1 \u6703\u54e1"
+                  value={authName}
+                />
+              </label>
+            ) : null}
+
+            <button className="auth-submit" disabled={authBusy} type="submit">
+              {authBusy ? "\u8655\u7406\u4e2d" : authMode === "register" ? "\u5efa\u7acb\u5e33\u865f" : "\u624b\u6a5f\u767b\u5165"}
+            </button>
+          </form>
+
+          {authMessage ? <p className="auth-message">{authMessage}</p> : null}
+          <p className="auth-note">{"\u6b64\u7248\u672c\u4e0d\u9700\u8981\u7c21\u8a0a\u9a57\u8b49\u78bc\u3002\u6b63\u5f0f\u516c\u958b\u71df\u904b\u524d\uff0c\u53ef\u518d\u5347\u7d1a\u6210 OTP \u6216\u7b2c\u4e09\u65b9\u767b\u5165\u3002"}</p>
+        </section>
+      </main>
+    );
   }
 
   return (

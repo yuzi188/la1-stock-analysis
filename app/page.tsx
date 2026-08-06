@@ -249,6 +249,32 @@ const pages: { key: PageKey; label: string; description: string }[] = [
   { key: "settings", label: "設定", description: "資料源、環境變數與產品護欄。" },
 ];
 
+const navOrder: PageKey[] = [
+  "overview",
+  "watchlist",
+  "notes",
+  "morning",
+  "review",
+  "pulse",
+  "indices",
+  "breadth",
+  "sectors",
+  "themes",
+  "compare",
+  "institutions",
+  "global",
+  "data",
+  "ai",
+  "risk",
+  "notifications",
+  "news",
+  "settings",
+];
+
+const navigationPages = navOrder
+  .map((key) => pages.find((page) => page.key === key))
+  .filter((page): page is (typeof pages)[number] => Boolean(page));
+
 const watchlist: WatchItem[] = [
   { symbol: "2330", name: "台積電", theme: "晶圓代工 / AI 算力" },
   { symbol: "2317", name: "鴻海", theme: "AI 伺服器 / 電動車" },
@@ -2035,7 +2061,7 @@ export default function Home() {
           <span>TAIWAN STOCK INTELLIGENCE</span>
         </div>
         <nav className="side-nav" aria-label="主要功能">
-          {pages.map((page, index) => (
+          {navigationPages.map((page, index) => (
             <button
               className={activePage === page.key ? "active" : ""}
               key={page.key}

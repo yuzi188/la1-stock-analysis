@@ -1070,7 +1070,7 @@ button:disabled {
 
 .watch-row {
   align-items: center;
-  grid-template-columns: 54px 64px minmax(0, 1fr);
+  grid-template-columns: 54px 70px minmax(0, 1fr) minmax(82px, auto);
 }
 
 .watch-row-shell {
@@ -1088,6 +1088,45 @@ button:disabled {
 
 .watch-row strong {
   color: var(--green);
+}
+
+.watch-price {
+  align-items: end;
+  display: grid;
+  gap: 3px;
+  justify-items: end;
+  min-width: 0;
+}
+
+.watch-price em {
+  color: var(--foreground);
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.watch-row.up .watch-price small {
+  color: var(--green);
+}
+
+.watch-row.down .watch-price small {
+  color: var(--red);
+}
+
+@media (max-width: 620px) {
+  .watch-row {
+    grid-template-columns: 54px minmax(0, 1fr) minmax(76px, auto);
+  }
+
+  .watch-row > small {
+    grid-column: 2 / 3;
+  }
+
+  .watch-price {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
 }
 
 .watch-remove {

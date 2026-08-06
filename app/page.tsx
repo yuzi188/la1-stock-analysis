@@ -806,6 +806,7 @@ export default function Home() {
 
     return {
       ...item,
+      name: liveQuote?.name ?? item.name,
       changePercent,
       lastPrice,
       status: isTriggered ? "警報" : changePercent === null ? "待資料" : "正常",
@@ -1296,10 +1297,27 @@ export default function Home() {
     void fetchQuote();
   }
 
-  function addWatchSymbol(event: FormEvent<HTMLFormElement>) {
+  async function addWatchSymbol(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const nextSymbol = customWatchSymbol.replace(/\D/g, "").slice(0, 6);
     if (!nextSymbol) return;
+
+    let nextQuote = quote?.symbol === nextSymbol ? quote : null;
+    if (!nextQuote) {
+      try {
+        const response = await fetch(`/api/quote-cache?symbol=${nextSymbol}&ttlMs=30000`, { cache: "no-store" });
+        const payload = await response.json().catch(() => null) as {
+          ok?: boolean;
+          quote?: Quote;
+        } | null;
+        if (response.ok && payload?.ok && payload.quote) {
+          nextQuote = payload.quote;
+          setWatchQuotes((quotes) => ({ ...quotes, [nextSymbol]: payload.quote as Quote }));
+        }
+      } catch {
+        // Keep adding the symbol even if the quote provider is temporarily unavailable.
+      }
+    }
 
     setSavedWatchlist((items) => {
       if (items.some((item) => item.symbol === nextSymbol)) return items;
@@ -1307,8 +1325,8 @@ export default function Home() {
         ...items,
         {
           symbol: nextSymbol,
-          name: quote?.symbol === nextSymbol ? quote.name : "自選股",
-          theme: quote?.symbol === nextSymbol ? "目前查詢標的" : "手動新增觀察",
+          name: nextQuote?.name ?? "\u5f85\u540c\u6b65\u516c\u53f8\u540d\u7a31",
+          theme: nextQuote ? "\u81ea\u9078\u80a1\u5373\u6642\u5831\u50f9" : "\u5f85\u540c\u6b65\u5831\u50f9",
         },
       ];
     });
@@ -1684,12 +1702,16 @@ export default function Home() {
         />
         <button type="submit">加入</button>
       </form>
-      {savedWatchlist.map((item) => (
+      {watchMonitorRows.map((item) => (
         <div className="watch-row-shell" key={item.symbol}>
-          <button className="watch-row" onClick={() => void fetchQuote(item.symbol)} type="button">
+          <button className={`watch-row ${item.tone}`} onClick={() => void fetchQuote(item.symbol)} type="button">
             <strong>{item.symbol}</strong>
             <span>{item.name}</span>
             <small>{item.theme}</small>
+            <div className="watch-price">
+              <em>{item.lastPrice ? `收 ${formatNumber(item.lastPrice)}` : "待報價"}</em>
+              <small>{formatPercent(item.changePercent)}</small>
+            </div>
           </button>
           <button
             aria-label={`\u522a\u9664 ${item.symbol}`}

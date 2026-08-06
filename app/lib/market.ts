@@ -811,16 +811,41 @@ export function getInstitutionalContext(): InstitutionalContext {
 
 export async function getOfficialMarketSummary(): Promise<OfficialMarketSummary> {
   return cached("official-market-summary:v4", 10 * 60_000, async () => {
-    const [twseStockRows, tpexCloseRows, twseIndexRows, tpexIndexRows, institutional, globalMarkets, macroFactors] =
-      await Promise.all([
-        fetchJson<TwseStockDayRow[]>("https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"),
-        fetchJson<TpexCloseRow[]>("https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"),
-        fetchJson<Record<string, unknown>[]>("https://openapi.twse.com.tw/v1/exchangeReport/MI_INDEX"),
-        fetchJson<TpexIndexRow[]>("https://www.tpex.org.tw/openapi/v1/tpex_index"),
-        getInstitutionalFlow(),
-        getGlobalMarkets().catch(() => []),
-        getMacroFactors().catch(() => []),
-      ]);
+    const [
+      twseStockResult,
+      tpexCloseResult,
+      twseIndexResult,
+      tpexIndexResult,
+      institutionalResult,
+      globalMarketsResult,
+      macroFactorsResult,
+    ] = await Promise.allSettled([
+      fetchJson<TwseStockDayRow[]>("https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL"),
+      fetchJson<TpexCloseRow[]>("https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"),
+      fetchJson<Record<string, unknown>[]>("https://openapi.twse.com.tw/v1/exchangeReport/MI_INDEX"),
+      fetchJson<TpexIndexRow[]>("https://www.tpex.org.tw/openapi/v1/tpex_index"),
+      getInstitutionalFlow(),
+      getGlobalMarkets(),
+      getMacroFactors(),
+    ]);
+
+    const twseStockRows = twseStockResult.status === "fulfilled" ? twseStockResult.value : [];
+    const tpexCloseRows = tpexCloseResult.status === "fulfilled" ? tpexCloseResult.value : [];
+    const twseIndexRows = twseIndexResult.status === "fulfilled" ? twseIndexResult.value : [];
+    const tpexIndexRows = tpexIndexResult.status === "fulfilled" ? tpexIndexResult.value : [];
+    const institutional =
+      institutionalResult.status === "fulfilled"
+        ? institutionalResult.value
+        : {
+            foreign: null,
+            investmentTrust: null,
+            dealer: null,
+            total: null,
+            date: null,
+            source: "TWSE T86 + TPEx 3insti daily trading",
+          };
+    const globalMarkets = globalMarketsResult.status === "fulfilled" ? globalMarketsResult.value : [];
+    const macroFactors = macroFactorsResult.status === "fulfilled" ? macroFactorsResult.value : [];
 
     const items = [
       ...normalizeTwseStockRows(twseStockRows),

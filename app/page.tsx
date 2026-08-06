@@ -1920,11 +1920,16 @@ export default function Home() {
       case "overview":
         return (
           <>
-            {decisionPanel}
-            {trendPanel}
-            {quotePanel}
-            {alertPanel}
             {sentimentPanel}
+            {trendPanel}
+            {institutionPanel}
+            {breadthPanel}
+            {sectorPanel}
+            {rankingPanel}
+            {watchMonitorPanel}
+            {globalPanel}
+            {decisionPanel}
+            {newsPanel}
           </>
         );
       case "morning":
@@ -2159,11 +2164,11 @@ export default function Home() {
   }
 
   return (
-    <main className="terminal-shell">
+    <main className="terminal-shell command-center">
       <aside className="sidebar">
         <div className="brand-block">
-          <strong>LA1台股分析室</strong>
-          <span>TAIWAN STOCK INTELLIGENCE</span>
+          <strong>LA1 STOCK LAB</strong>
+          <span>MARKET INTELLIGENCE</span>
         </div>
         <nav className="side-nav" aria-label="主要功能">
           {navigationPages.map((page, index) => (
@@ -2181,8 +2186,8 @@ export default function Home() {
         <div className="sidebar-footer">
           <span className="live-dot" />
           <div>
-            <strong>本機開發模式</strong>
-            <p>資料源透明標示</p>
+            <strong>{"\u6230\u5099\u6a21\u5f0f"}</strong>
+            <p>{"\u76e4\u4e2d\u5831\u50f9 30 \u79d2\u66f4\u65b0"}</p>
           </div>
         </div>
       </aside>
@@ -2191,8 +2196,8 @@ export default function Home() {
         <header className="topbar">
           <div className="sync-state">
             <span className="live-dot" />
-            <strong>官方數據同步中</strong>
-            <span>資料日期 {new Date().toLocaleDateString("zh-TW")}</span>
+            <strong>{"\u6230\u7565\u7e3d\u89bd / \u5e02\u5834\u6230\u6cc1\u6307\u63ee\u4e2d\u5fc3"}</strong>
+            <span>{"\u8cc7\u6599\u65e5\u671f"} {new Date().toLocaleDateString("zh-TW")}</span>
           </div>
           <form className="stock-search" onSubmit={submit}>
             <span>⌕</span>

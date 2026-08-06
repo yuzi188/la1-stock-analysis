@@ -115,6 +115,18 @@ export type MacroFactorContext = {
   source: string;
 };
 
+export type IndustryRotationContext = {
+  name: string;
+  symbols: string[];
+  averageChangePercent: number | null;
+  upCount: number;
+  downCount: number;
+  totalMatched: number;
+  score: number;
+  leaders: RankingItem[];
+  source: string;
+};
+
 export type OfficialMarketSummary = {
   indices: {
     twse: MarketIndexContext;
@@ -129,6 +141,7 @@ export type OfficialMarketSummary = {
     losers: RankingItem[];
     volume: RankingItem[];
   };
+  industryRotation: IndustryRotationContext[];
   generatedAt: string;
 };
 
@@ -424,6 +437,67 @@ function buildBreadth(items: RankingItem[]): MarketBreadthContext {
     score,
     source: "TWSE STOCK_DAY_ALL + TPEx daily close quotes",
   };
+}
+
+const industryThemes = [
+  {
+    name: "AI 伺服器",
+    symbols: ["2317", "2382", "3231", "6669", "2356", "2357", "2376", "3706", "3017"],
+  },
+  {
+    name: "半導體",
+    symbols: ["2330", "2454", "2303", "3711", "3661", "3443", "3034", "3260", "6488", "6770"],
+  },
+  {
+    name: "電力散熱",
+    symbols: ["2308", "3017", "3324", "3653", "6274", "2421", "8996"],
+  },
+  {
+    name: "PCB / CCL",
+    symbols: ["2383", "2368", "3037", "2367", "3044", "4958", "6213", "8358"],
+  },
+  {
+    name: "太空航太",
+    symbols: ["2634", "8033", "8222", "2208", "4572", "2645"],
+  },
+] as const;
+
+function buildIndustryRotation(items: RankingItem[]): IndustryRotationContext[] {
+  const itemBySymbol = new Map(items.map((item) => [item.symbol, item]));
+
+  return industryThemes.map((theme) => {
+    const matched = theme.symbols
+      .map((symbol) => itemBySymbol.get(symbol))
+      .filter((item): item is RankingItem => Boolean(item));
+    const changes = matched
+      .map((item) => item.changePercent)
+      .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+    const averageChangePercent = changes.length
+      ? changes.reduce((sum, value) => sum + value, 0) / changes.length
+      : null;
+    const upCount = matched.filter((item) => (item.change ?? 0) > 0).length;
+    const downCount = matched.filter((item) => (item.change ?? 0) < 0).length;
+    const upRatio = matched.length ? upCount / matched.length : 0.5;
+    const score = Math.round(
+      clamp(50 + (averageChangePercent ?? 0) * 8 + (upRatio - 0.5) * 38, 0, 100),
+    );
+    const leaders = [...matched]
+      .filter((item) => item.changePercent !== null)
+      .sort((a, b) => (b.changePercent ?? -Infinity) - (a.changePercent ?? -Infinity))
+      .slice(0, 3);
+
+    return {
+      name: theme.name,
+      symbols: [...theme.symbols],
+      averageChangePercent,
+      upCount,
+      downCount,
+      totalMatched: matched.length,
+      score,
+      leaders,
+      source: "TWSE STOCK_DAY_ALL + TPEx daily close quotes + LA1 theme symbol map",
+    };
+  });
 }
 
 function emptyIndex(name: string, source: string): MarketIndexContext {
@@ -1082,6 +1156,7 @@ export async function getOfficialMarketSummary(): Promise<OfficialMarketSummary>
           .sort((a, b) => (b.volume ?? -Infinity) - (a.volume ?? -Infinity))
           .slice(0, 8),
       },
+      industryRotation: buildIndustryRotation(items),
       generatedAt: new Date().toISOString(),
     };
   });

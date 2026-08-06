@@ -13,6 +13,7 @@ Implementation scope:
 - Market Pulse page now shows only the currently selected stock or ETF: sentiment, trend, live quote, and K-line detail. It no longer shows unrelated market ranking cards.
 - Market Pulse and Market Breadth now include selected-stock relative breadth, so a searched symbol uses its own trend, risk, technical score, and market regime instead of unrelated full-market breadth.
 - AI decision cards now use market-regime-first logic and show direct buy / no-buy / sell-or-avoid recommendations.
+- Sector rotation now uses TWSE/TPEx market data with LA1 theme symbol maps to show average change, breadth, score, and leading stocks for AI server, semiconductor, cooling/power, PCB/CCL, and aerospace themes.
 - International Market now includes a geopolitical situation panel using a GDELT-backed API endpoint plus World Monitor integration status and links.
 - Menu pages were audited so each page now keeps only functionally relevant cards; unrelated quote, ranking, source, and news panels were removed from narrow-purpose pages.
 - Click-to-enlarge modal for dashboard cards.

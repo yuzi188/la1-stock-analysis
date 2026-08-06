@@ -130,6 +130,18 @@ type MacroFactorContext = {
   source: string;
 };
 
+type IndustryRotationContext = {
+  name: string;
+  symbols: string[];
+  averageChangePercent: number | null;
+  upCount: number;
+  downCount: number;
+  totalMatched: number;
+  score: number;
+  leaders: RankingItem[];
+  source: string;
+};
+
 type OfficialMarketSummary = {
   indices: {
     twse: MarketIndexContext;
@@ -144,6 +156,7 @@ type OfficialMarketSummary = {
     losers: RankingItem[];
     volume: RankingItem[];
   };
+  industryRotation: IndustryRotationContext[];
   generatedAt: string;
 };
 
@@ -1401,13 +1414,21 @@ export default function Home() {
     },
   ];
 
-  const sectorRows = [
-    ["半導體", context?.revenue.available ? "營收資料已接" : "待接", context?.revenue.yoyChangePercent],
-    ["AI 伺服器", "待接產業資料", null],
-    ["航太 / 國防", "待接產業資料", null],
-    ["散熱 / 電源", "待接產業資料", null],
-    ["PCB / CCL", "待接產業資料", null],
-  ] as const;
+  const sectorRows = marketSummary?.industryRotation.length
+    ? marketSummary.industryRotation
+    : [
+        {
+          name: "半導體",
+          averageChangePercent: context?.revenue.yoyChangePercent ?? null,
+          upCount: 0,
+          downCount: 0,
+          totalMatched: context ? 1 : 0,
+          score: context?.revenue.yoyChangePercent ? Math.round(clamp(50 + context.revenue.yoyChangePercent / 2, 0, 100)) : 50,
+          leaders: quote ? [{ ...quote, market: "TWSE" as const, close: quote.price }] : [],
+          source: context?.revenue.available ? "TWSE monthly revenue fallback" : "waiting market API",
+          symbols: quote ? [quote.symbol] : [],
+        },
+      ];
 
   const moverRows = watchlist.map((item, index) => ({
     rank: index + 1,
@@ -1794,12 +1815,23 @@ export default function Home() {
   );
 
   const sectorPanel = (
-    <Panel className="sector-panel" eyebrow="產業輪動" title="AI / 半導體雷達" status={context?.revenue.available ? "月營收已接" : "待接"}>
-      {sectorRows.map(([name, status, change]) => (
-        <div className="sector-row" key={String(name)}>
-          <span>{name}</span>
-          <div><i style={{ width: `${change ? clamp(Number(change) + 45, 12, 100) : 42}%` }} /></div>
-          <strong>{typeof change === "number" ? `${formatNumber(change)}%` : status}</strong>
+    <Panel
+      className="sector-panel"
+      eyebrow="產業輪動"
+      title={marketSummary?.industryRotation.length ? "主題資金強弱" : "AI / 半導體雷達"}
+      status={marketSummary?.industryRotation.length ? "官方行情彙總" : "載入中"}
+      statusTone={marketSummary?.industryRotation.length ? "up" : "neutral"}
+    >
+      {sectorRows.map((row) => (
+        <div className="sector-row" key={row.name}>
+          <span>{row.name}</span>
+          <div><i style={{ width: `${clamp(row.score, 12, 100)}%` }} /></div>
+          <strong>{formatPercent(row.averageChangePercent)}</strong>
+          <small>
+            {row.totalMatched
+              ? `分數 ${row.score}/100 · 上漲 ${row.upCount} / 下跌 ${row.downCount} · ${row.leaders[0] ? `領先 ${row.leaders[0].name} ${formatPercent(row.leaders[0].changePercent)}` : "無強勢股"}`
+              : "等待官方行情"}
+          </small>
         </div>
       ))}
     </Panel>

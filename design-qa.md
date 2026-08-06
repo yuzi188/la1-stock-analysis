@@ -11,6 +11,8 @@ Implementation scope:
 - Mobile dashboard uses compact multi-column card layout so cards resemble the horizontal command-center density and can be tapped to enlarge.
 - Mobile bottom dock keeps the homepage entry visible and labels the scrollable section as menu.
 - Market Pulse page now shows only the currently selected stock or ETF: sentiment, trend, live quote, and K-line detail. It no longer shows unrelated market ranking cards.
+- Market Pulse and Market Breadth now include selected-stock relative breadth, so a searched symbol uses its own trend, risk, technical score, and market regime instead of unrelated full-market breadth.
+- AI decision cards now use market-regime-first logic and show direct buy / no-buy / sell-or-avoid recommendations.
 - International Market now includes a geopolitical situation panel using a GDELT-backed API endpoint plus World Monitor integration status and links.
 - Menu pages were audited so each page now keeps only functionally relevant cards; unrelated quote, ranking, source, and news panels were removed from narrow-purpose pages.
 - Click-to-enlarge modal for dashboard cards.

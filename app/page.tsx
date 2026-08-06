@@ -243,6 +243,16 @@ type TradeSignal = {
   checks: string[];
 };
 
+type MarketRegime = {
+  label: string;
+  score: number;
+  tone: "up" | "down" | "neutral" | "warn";
+  posture: string;
+  rule: string;
+  confidence: string;
+  checks: string[];
+};
+
 type AlertSettings = {
   upPercent: number;
   downPercent: number;
@@ -379,63 +389,146 @@ function riskScore(quote: Quote | null, context: MarketContext | null) {
   return Math.round(clamp(35 + volatility * 5 + (belowMa20 ? 16 : 0), 0, 100));
 }
 
-function tradeSignal(quote: Quote | null, context: MarketContext | null): TradeSignal {
+function averageNumbers(values: (number | null | undefined)[]) {
+  const valid = values.filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  if (!valid.length) return null;
+  return valid.reduce((sum, value) => sum + value, 0) / valid.length;
+}
+
+function buildMarketRegime(
+  marketSummary: OfficialMarketSummary | null,
+  geopolitics: GeopoliticalSituation | null,
+  fallbackScore: number,
+): MarketRegime {
+  const breadthScore = marketSummary?.breadth.score ?? fallbackScore;
+  const institutionalTotal = marketSummary?.institutional.total ?? 0;
+  const institutionScore = marketSummary?.institutional.total === null || marketSummary?.institutional.total === undefined
+    ? 50
+    : clamp(50 + institutionalTotal / 250000, 15, 85);
+  const globalChange = averageNumbers(marketSummary?.globalMarkets.map((market) => market.changePercent) ?? []);
+  const vix = marketSummary?.globalMarkets.find((market) => market.name.toUpperCase().includes("VIX"))?.value ?? null;
+  const globalScore = clamp(52 + (globalChange ?? 0) * 8 - (vix && vix > 20 ? (vix - 20) * 1.4 : 0), 15, 85);
+  const geopoliticalRisk = geopolitics?.riskScore ?? 45;
+  const riskAdjustment = geopoliticalRisk >= 70 ? -10 : geopoliticalRisk >= 55 ? -5 : geopoliticalRisk <= 35 ? 4 : 0;
+  const score = Math.round(clamp(breadthScore * 0.42 + institutionScore * 0.26 + globalScore * 0.2 + (50 + riskAdjustment) * 0.12, 0, 100));
+
+  if (score >= 65) {
+    return {
+      label: "主升盤",
+      score,
+      tone: "up",
+      posture: "資金與廣度支持，允許主動承擔風險。",
+      rule: "優先找強勢產業與站上 20/60 日線的個股。",
+      confidence: "高",
+      checks: ["大盤廣度維持 60 以上", "法人合計不轉賣超", "個股收盤守住 20 日線"],
+    };
+  }
+
+  if (score >= 55) {
+    return {
+      label: "可承擔風險",
+      score,
+      tone: "up",
+      posture: "盤面可做，但需要分批與停損紀律。",
+      rule: "只買趨勢確認標的，不追短線過熱。",
+      confidence: "中高",
+      checks: ["回測不破 20 日線", "類股同步轉強", "國際風險未升高"],
+    };
+  }
+
+  if (score >= 45) {
+    return {
+      label: "震盪控碼",
+      score,
+      tone: "neutral",
+      posture: "盤面沒有全面優勢，先控部位。",
+      rule: "不急買，只做突破確認或低風險回測。",
+      confidence: "中",
+      checks: ["等待量縮止跌", "確認大盤重新站穩", "降低單筆部位"],
+    };
+  }
+
+  return {
+    label: "防守盤",
+    score,
+    tone: "warn",
+    posture: "大盤風險大於機會，先保留現金。",
+    rule: "不開新倉，弱勢股反彈先賣或避開。",
+    confidence: "中高",
+    checks: ["跌破均線要降碼", "避開弱勢族群", "等大盤廣度回升"],
+  };
+}
+
+function buildInstitutionalTradePlan(
+  quote: Quote | null,
+  context: MarketContext | null,
+  technicalScore: number,
+  currentRisk: number,
+  regime: MarketRegime,
+): TradeSignal {
   if (!quote || !context) {
     return {
       label: "等待資料",
       zone: "先查詢個股",
       tone: "neutral",
-      description: "同步報價與 K 線後，系統會用價格、均線、波動與營收資料判斷目前區間。",
+      description: "先同步即時報價、K 線與大盤制度，再輸出買、不買或賣出的明確決策。",
       checks: ["輸入股票代碼", "同步即時資料", "再產生 AI 分析"],
     };
   }
 
   const price = quote.price ?? context.technical.latestClose;
-  const ma5 = context.technical.ma5;
   const ma20 = context.technical.ma20;
   const ma60 = context.technical.ma60;
-  const aboveMa5 = Boolean(price && ma5 && price >= ma5);
+  const changePercent = quote.changePercent ?? 0;
   const aboveMa20 = Boolean(price && ma20 && price >= ma20);
   const aboveMa60 = Boolean(price && ma60 && price >= ma60);
-  const changePercent = quote.changePercent ?? 0;
-  const currentRisk = riskScore(quote, context);
 
-  if (currentRisk >= 68 || changePercent >= 6) {
+  if (regime.score < 45) {
     return {
-      label: "風險升高區",
+      label: "防守決策",
+      zone: "不買 / 弱勢先賣",
+      tone: "warn",
+      description: `${regime.label}下，先以大盤風險控管為主；沒有必要逆勢開新倉。`,
+      checks: regime.checks,
+    };
+  }
+
+  if (currentRisk >= 70 || changePercent >= 6) {
+    return {
+      label: "風險決策",
       zone: "不追高",
       tone: "warn",
-      description: "短線波動或漲幅偏大，適合等待量價冷卻與支撐確認。",
-      checks: ["觀察是否跌破 5 日線", "確認成交量是否失控放大", "分批停利或降低槓桿"],
+      description: "短線波動或漲幅已偏高，機構邏輯會等回測確認，不用追價承擔不對稱風險。",
+      checks: ["回測 5/20 日線是否有承接", "成交量是否失控放大", "先規劃停利或降碼"],
     };
   }
 
-  if (aboveMa5 && aboveMa20 && (aboveMa60 || !ma60) && changePercent > 0) {
+  if (regime.score >= 55 && technicalScore >= 60 && aboveMa20 && (aboveMa60 || !ma60) && changePercent >= 0) {
     return {
-      label: "可分批區",
-      zone: "趨勢偏多",
+      label: "進攻決策",
+      zone: "建議分批買",
       tone: "up",
-      description: "股價站上短中期均線，動能仍在，但仍建議分批與設定停損點。",
-      checks: ["回測 5 日線不破", "20 日線維持上彎", "營收或新聞沒有轉弱訊號"],
+      description: `${regime.label}配合個股站上主要均線，屬於可承擔風險的進場條件；用分批買與停損控制錯判。`,
+      checks: ["收盤守住 20 日線", "隔日量價不背離", "大盤制度不跌破 55"],
     };
   }
 
-  if (!aboveMa20 && changePercent < 0) {
+  if (!aboveMa20 || technicalScore < 45 || changePercent < -3) {
     return {
-      label: "觀察區",
-      zone: "等轉強",
+      label: "退場決策",
+      zone: "建議賣出 / 避開",
       tone: "down",
-      description: "價格低於 20 日線或短線偏弱，先等止跌、量縮或重新站回均線。",
-      checks: ["重新站回 20 日線", "法人賣壓是否放緩", "等待低點不再破低"],
+      description: "個股弱於主要均線或動能不足，未符合機構型進場條件；已有部位先降碼，未持有不買。",
+      checks: ["重新站回 20 日線再評估", "確認是否跌破前低", "等待大盤與族群同步轉強"],
     };
   }
 
   return {
-    label: "觀察區",
-    zone: "中性整理",
+    label: "等待決策",
+    zone: "不買，等確認",
     tone: "neutral",
-    description: "目前沒有明確追價優勢，適合等待突破、回測支撐或 AI 分析確認催化。",
-    checks: ["看 5/20 日線是否糾結後轉強", "追蹤成交量是否放大", "設定進場與退場價格"],
+    description: "大盤與個股條件尚未形成高勝率組合；先等待突破、回測或法人/產業資料確認。",
+    checks: ["突破壓力且收盤站穩", "回測支撐不破", "技術分數提升到 60 以上"],
   };
 }
 
@@ -741,7 +834,7 @@ export default function Home() {
   const score = sentimentScore(quote);
   const marketScore = marketSummary?.breadth.score ?? score;
   const risk = riskScore(quote, context);
-  const signal = tradeSignal(quote, context);
+  const marketRegime = buildMarketRegime(marketSummary, geopolitics, marketScore);
   const activePageMeta = pages.find((page) => page.key === activePage) ?? pages[0];
   const openZoomedCard = useCallback((event: ReactMouseEvent<HTMLElement>) => {
     const target = event.target;
@@ -811,15 +904,24 @@ export default function Home() {
       ? currentPrice * 1.05
       : null;
   const stopPrice = supportPrice ? supportPrice * 0.97 : context?.technical.ma60 ?? null;
-  const decisionAction = !quote
-    ? "先輸入股票代號"
+  const signal = buildInstitutionalTradePlan(quote, context, technicalScore, risk, marketRegime);
+  const targetBreadthScore = quote
+    ? Math.round(clamp(technicalScore * 0.45 + marketRegime.score * 0.35 + score * 0.2 - Math.max(0, risk - 55) * 0.25, 0, 100))
+    : marketScore;
+  const targetBreadthLabel = targetBreadthScore >= 62
+    ? "標的強於盤"
+    : targetBreadthScore <= 42
+      ? "標的弱於盤"
+      : "標的中性";
+  const decisionStatus = !quote
+    ? "先輸入"
     : signal.tone === "up"
-      ? "可分批觀察"
+      ? "建議分批買"
       : signal.tone === "warn"
-        ? "過熱不追"
+        ? "不買 / 降低持股"
         : signal.tone === "down"
-          ? "等轉強"
-          : "觀察整理";
+          ? "建議賣出 / 避開"
+          : "不買，等確認";
   const decisionChecks = analysis?.nextChecks?.length ? analysis.nextChecks.slice(0, 3) : signal.checks;
   const alertRules = [
     {
@@ -1438,13 +1540,18 @@ export default function Home() {
   }
 
   const decisionPanel = (
-    <Panel className={`decision-panel ${signal.tone}`} eyebrow="AI 投資決策卡" title={quote ? `${quote.name} ${quote.symbol}` : "輸入股票產生決策"} status={decisionAction} statusTone={signal.tone}>
+    <Panel className={`decision-panel ${signal.tone}`} eyebrow="AI 投資決策卡" title={quote ? `${quote.name} ${quote.symbol}` : "輸入股票產生決策"} status={decisionStatus} statusTone={signal.tone}>
       <div className={`decision-hero ${signal.tone}`}>
         <div>
-          <span>操作結論</span>
+          <span>決策</span>
           <strong>{signal.zone}</strong>
         </div>
         <p>{signal.description}</p>
+      </div>
+      <div className="decision-regime">
+        <span>大盤制度</span>
+        <strong>{marketRegime.label} {marketRegime.score}/100</strong>
+        <small>{marketRegime.posture} · {marketRegime.rule}</small>
       </div>
       <div className="decision-prices">
         <div><span>支撐</span><strong>{formatNumber(supportPrice)}</strong></div>
@@ -1653,6 +1760,29 @@ export default function Home() {
         ["上漲", marketSummary?.breadth.up ?? "--", "TWSE + TPEx"],
         ["下跌", marketSummary?.breadth.down ?? "--", "TWSE + TPEx"],
         ["平盤", marketSummary?.breadth.flat ?? "--", `總計 ${marketSummary?.breadth.total ?? "--"} 檔`],
+      ].map(([name, value, note]) => (
+        <div className="compact-row" key={name}>
+          <span>{name}</span>
+          <strong>{value}</strong>
+          <small>{note}</small>
+        </div>
+      ))}
+    </Panel>
+  );
+
+  const targetBreadthPanel = (
+    <Panel
+      className="breadth-panel"
+      eyebrow="標的相對廣度"
+      title={quote ? `${quote.name} ${quote.symbol}` : "先查詢股票"}
+      status={quote ? targetBreadthLabel : "待查詢"}
+      statusTone={targetBreadthScore >= 62 ? "up" : targetBreadthScore <= 42 ? "down" : "neutral"}
+    >
+      <Donut label="標的分數" value={targetBreadthScore} />
+      {[
+        ["大盤制度", `${marketRegime.score}/100`, marketRegime.label],
+        ["個股趨勢", context ? `${technicalScore}/100` : "--", context ? "均線 / K 線" : "待同步"],
+        ["風險扣分", quote ? `${risk}/100` : "--", risk >= 65 ? "波動偏高" : "可控"],
       ].map(([name, value, note]) => (
         <div className="compact-row" key={name}>
           <span>{name}</span>
@@ -2187,6 +2317,7 @@ export default function Home() {
           <>
             {sentimentPanel}
             {trendPanel}
+            {targetBreadthPanel}
             {homeQuotePanel}
             {quotePanel}
           </>
@@ -2212,6 +2343,7 @@ export default function Home() {
       case "breadth":
         return (
           <>
+            {targetBreadthPanel}
             {breadthPanel}
             {rankingPanel}
             {downRankingPanel}

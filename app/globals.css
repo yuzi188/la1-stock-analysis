@@ -1417,6 +1417,28 @@ button:disabled {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.decision-regime {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(245, 210, 143, 0.22);
+  border-radius: 7px;
+  display: grid;
+  gap: 5px;
+  padding: 9px;
+}
+
+.decision-regime span,
+.decision-regime small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.decision-regime strong {
+  color: #f4c777;
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
 .decision-prices div,
 .decision-score {
   background: rgba(255, 255, 255, 0.035);

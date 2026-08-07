@@ -2,44 +2,36 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-async function render(path = "/") {
+async function getWorker(suffix = "") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
+  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${suffix}`);
   const { default: worker } = await import(workerUrl.href);
+  return worker;
+}
 
-  return worker.fetch(
-    new Request(`http://localhost${path}`, {
-      headers: { accept: "text/html" },
-    }),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
+function env() {
+  return {
+    ASSETS: {
+      fetch: async () => new Response("Not found", { status: 404 }),
     },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
+  };
+}
+
+function ctx() {
+  return {
+    waitUntil() {},
+    passThroughOnException() {},
+  };
+}
+
+async function render(path = "/") {
+  const worker = await getWorker("render");
+  return worker.fetch(new Request(`http://localhost${path}`, { headers: { accept: "text/html" } }), env(), ctx());
 }
 
 async function fetchFromWorker(path) {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${path}`);
-  const { default: worker } = await import(workerUrl.href);
-
-  return worker.fetch(
-    new Request(`http://localhost${path}`),
-    {
-      ASSETS: {
-        fetch: async () => new Response("Not found", { status: 404 }),
-      },
-    },
-    {
-      waitUntil() {},
-      passThroughOnException() {},
-    },
-  );
+  const worker = await getWorker(path);
+  return worker.fetch(new Request(`http://localhost${path}`), env(), ctx());
 }
 
 test("server-renders the phone auth gate before the dashboard", async () => {
@@ -48,12 +40,12 @@ test("server-renders the phone auth gate before the dashboard", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>LA1\u53f0\u80a1\u5206\u6790\u5ba4<\/title>/i);
+  assert.match(html, /<title>LA1台股分析室<\/title>/i);
   assert.match(html, /auth-shell/);
-  assert.match(html, /LA1 \u53f0\u80a1\u5206\u6790\u5ba4/);
-  assert.match(html, /\u624b\u6a5f\u865f\u8a3b\u518a/);
-  assert.match(html, /\u767b\u5165/);
-  assert.match(html, /\u8a3b\u518a/);
+  assert.match(html, /LA1 台股分析室/);
+  assert.match(html, /手機號註冊/);
+  assert.match(html, /登入/);
+  assert.match(html, /註冊/);
   assert.match(html, /0912345678/);
   assert.doesNotMatch(html, /codex-preview|SkeletonPreview|react-loading-skeleton/);
 });
@@ -86,17 +78,15 @@ test("analyze endpoint refuses to run without an OpenAI key", async () => {
 });
 
 test("phone auth endpoint creates a lightweight user", async () => {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", String(process.pid) + "-" + String(Date.now()) + "-auth");
-  const { default: worker } = await import(workerUrl.href);
+  const worker = await getWorker("auth");
   const response = await worker.fetch(
     new Request("http://localhost/api/auth", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ mode: "register", phone: "0912-345-678", name: "Test User" }),
     }),
-    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
-    { waitUntil() {}, passThroughOnException() {} },
+    env(),
+    ctx(),
   );
 
   assert.equal(response.status, 200);
@@ -114,9 +104,7 @@ test("cloud sync endpoint saves lightweight user data", async () => {
   const initial = await response.json();
   assert.equal(initial.ok, true);
 
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-sync-post`);
-  const { default: worker } = await import(workerUrl.href);
+  const worker = await getWorker("sync-post");
   const saved = await worker.fetch(
     new Request("http://localhost/api/sync?userId=test-user", {
       method: "POST",
@@ -126,9 +114,10 @@ test("cloud sync endpoint saves lightweight user data", async () => {
         alertSettings: { upPercent: 2.5 },
       }),
     }),
-    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
-    { waitUntil() {}, passThroughOnException() {} },
+    env(),
+    ctx(),
   );
+
   assert.equal(saved.status, 200);
   const json = await saved.json();
   assert.equal(json.ok, true);
@@ -137,23 +126,21 @@ test("cloud sync endpoint saves lightweight user data", async () => {
 });
 
 test("notify endpoint records notifications without configured channels", async () => {
-  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-notify`);
-  const { default: worker } = await import(workerUrl.href);
+  const worker = await getWorker("notify");
   const response = await worker.fetch(
     new Request("http://localhost/api/notify?userId=test-user", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ title: "測試通知", detail: "通知內容" }),
+      body: JSON.stringify({ title: "警報測試", detail: "測試通知" }),
     }),
-    { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
-    { waitUntil() {}, passThroughOnException() {} },
+    env(),
+    ctx(),
   );
 
   assert.equal(response.status, 200);
   const json = await response.json();
   assert.equal(json.ok, true);
-  assert.equal(json.notification.title, "測試通知");
+  assert.equal(json.notification.title, "警報測試");
 });
 
 test("starter preview code is removed from product files", async () => {
@@ -164,8 +151,9 @@ test("starter preview code is removed from product files", async () => {
   ]);
 
   assert.doesNotMatch(page, /_sites-preview|SkeletonPreview|codex-preview/);
-  assert.match(page, /警報設定/);
-  assert.match(page, /自選股批次監控/);
+  assert.match(page, /LA1 台股分析室/);
+  assert.match(page, /手機號註冊/);
+  assert.match(page, /la1-saved-watchlist/);
   assert.match(page, /la1-alert-settings/);
   assert.doesNotMatch(layout, /Starter Project|codex-preview/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);

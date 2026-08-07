@@ -14,13 +14,13 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "LA1台股分析室",
-  description: "台股即時報價、K 線、產業輪動、法人狀態、新聞與 AI 分析的市場情報儀表板。",
-  applicationName: "LA1 STOCK LAB",
+  description: "台股即時報價、自選股監控、法人資金、市場脈動與 AI 分析工作台。",
+  applicationName: "LA1台股分析室",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "LA1 STOCK LAB",
+    title: "LA1台股分析室",
   },
   formatDetection: {
     telephone: false,
@@ -37,7 +37,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#03090b",
+  themeColor: "#03080d",
 };
 
 export default function RootLayout({
@@ -47,9 +47,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-Hant-TW">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
-      </body>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
     </html>
   );
 }

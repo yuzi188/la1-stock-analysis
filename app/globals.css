@@ -4728,3 +4728,313 @@ button:disabled {
     display: none;
   }
 }
+
+@media (max-width: 1023px) {
+  .command-center {
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .command-center .mobile-shell,
+  .command-center .app-shell {
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .command-center .brand-block {
+    padding-bottom: 5px;
+  }
+
+  .command-center .brand-block strong {
+    font-size: 0.76rem;
+  }
+
+  .command-center .brand-block span {
+    display: none;
+  }
+
+  .command-center .side-nav {
+    gap: 5px;
+    grid-auto-columns: minmax(68px, 18vw);
+    padding-bottom: 0;
+  }
+
+  .command-center .side-nav button {
+    font-size: 0.58rem;
+    gap: 2px;
+    min-height: 42px;
+    padding: 5px 4px;
+  }
+
+  .command-center .side-nav button span {
+    font-size: 0.5rem;
+  }
+
+  .command-center .workbench {
+    display: grid;
+    gap: 5px;
+    grid-template-rows: auto 1fr;
+    height: calc(100dvh - 94px);
+    min-height: 0;
+    overflow: hidden;
+    padding: 5px;
+  }
+
+  .command-center .topbar {
+    gap: 5px;
+    min-height: 0;
+    padding: 5px;
+  }
+
+  .command-center .sync-state {
+    display: none;
+  }
+
+  .command-center .stock-search {
+    min-height: 28px;
+    padding: 0 8px;
+  }
+
+  .command-center .stock-search input,
+  .command-center .stock-search span {
+    font-size: 0.72rem;
+  }
+
+  .command-center .sync-button {
+    font-size: 0.68rem;
+    min-height: 28px;
+    padding: 0 8px;
+  }
+
+  .command-center .page-title,
+  .command-center .top-metrics {
+    display: none;
+  }
+
+  .command-center .dashboard-layout {
+    align-content: stretch;
+    display: grid;
+    gap: 5px;
+    grid-auto-flow: row dense;
+    grid-auto-rows: minmax(0, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .command-center .dashboard-layout > .panel,
+  .command-center .page-overview .panel,
+  .command-center .page-pulse .panel,
+  .command-center .quote-panel,
+  .command-center .decision-panel,
+  .command-center .notes-panel,
+  .command-center .cloud-panel,
+  .command-center .watch-panel,
+  .command-center .watch-monitor-panel,
+  .command-center .alert-panel,
+  .command-center .alert-settings-panel,
+  .command-center .brief-panel,
+  .command-center .theme-panel,
+  .command-center .compare-panel,
+  .command-center .data-panel,
+  .command-center .ai-panel,
+  .command-center .signal-panel,
+  .command-center .global-panel,
+  .command-center .economy-panel,
+  .command-center .geopolitics-panel,
+  .command-center .situation-feed-panel,
+  .command-center .news-panel,
+  .command-center .ranking-panel,
+  .command-center .breadth-panel,
+  .command-center .sector-panel,
+  .command-center .sentiment-panel,
+  .command-center .trend-panel,
+  .command-center .institution-panel,
+  .command-center .home-quote-panel {
+    grid-column: span 3 !important;
+    grid-row: span 1 !important;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .command-center .dashboard-layout > .panel {
+    align-content: start;
+    gap: 3px;
+    padding: 5px;
+  }
+
+  .command-center .panel-head {
+    align-items: center;
+    flex-direction: row;
+    gap: 4px;
+    min-height: 18px;
+  }
+
+  .command-center .panel-head h2 {
+    font-size: 0.66rem;
+    line-height: 1.08;
+  }
+
+  .command-center .panel-head span,
+  .command-center .status-chip {
+    font-size: 0.48rem;
+  }
+
+  .command-center .status-chip {
+    max-width: 62px;
+    min-height: 16px;
+    padding: 1px 4px;
+  }
+
+  .command-center .gauge svg,
+  .command-center .donut svg {
+    max-height: 52px;
+  }
+
+  .command-center .gauge strong,
+  .command-center .donut strong {
+    font-size: 0.86rem;
+  }
+
+  .command-center .gauge span,
+  .command-center .donut span {
+    font-size: 0.5rem;
+  }
+
+  .command-center .mini-trend,
+  .command-center .k-chart,
+  .command-center .page-overview .mini-trend {
+    min-height: 58px;
+  }
+
+  .command-center .sentiment-grid,
+  .command-center .quote-grid,
+  .command-center .decision-scores,
+  .command-center .decision-prices,
+  .command-center .home-quote-grid,
+  .command-center .source-grid,
+  .command-center .situation-hero,
+  .command-center .hotspot-grid,
+  .command-center .cloud-actions,
+  .command-center .note-form-grid {
+    gap: 3px;
+  }
+
+  .command-center .sentiment-grid div,
+  .command-center .quote-grid div,
+  .command-center .decision-score,
+  .command-center .decision-prices div,
+  .command-center .home-quote-grid div,
+  .command-center .source-grid div,
+  .command-center .situation-hero div,
+  .command-center .hotspot-chip,
+  .command-center .compact-row,
+  .command-center .sector-row,
+  .command-center .rank-row,
+  .command-center .global-row,
+  .command-center .news-item,
+  .command-center .watch-monitor-row,
+  .command-center .theme-row,
+  .command-center .notification-row,
+  .command-center .compare-row,
+  .command-center .brief-list div,
+  .command-center .note-card {
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .command-center .compact-row strong,
+  .command-center .sector-row strong,
+  .command-center .rank-row strong,
+  .command-center .global-row strong,
+  .command-center .news-item strong,
+  .command-center .watch-monitor-row strong,
+  .command-center .theme-row strong,
+  .command-center .compare-row strong,
+  .command-center .home-quote-price strong,
+  .command-center .quote-price strong,
+  .command-center .decision-hero strong {
+    font-size: 0.68rem;
+  }
+
+  .command-center .compact-row small,
+  .command-center .sector-row small,
+  .command-center .rank-row small,
+  .command-center .global-row small,
+  .command-center .news-item span,
+  .command-center .watch-monitor-row small,
+  .command-center .theme-row small,
+  .command-center .compare-row span,
+  .command-center .brief-list span,
+  .command-center .decision-hero p,
+  .command-center .decision-regime,
+  .command-center .settings-note,
+  .command-center .quote-meta,
+  .command-center .ma-legend {
+    display: none;
+  }
+
+  .command-center .quote-actions,
+  .command-center .decision-action,
+  .command-center .watch-add,
+  .command-center .note-form-grid,
+  .command-center .cloud-actions,
+  .command-center .alert-control,
+  .command-center .world-monitor-links {
+    display: none;
+  }
+
+  .command-center .watch-monitor-row:nth-of-type(n + 5),
+  .command-center .rank-row:nth-of-type(n + 5),
+  .command-center .news-item:nth-of-type(n + 4),
+  .command-center .global-row:nth-of-type(n + 5),
+  .command-center .notification-row:nth-of-type(n + 5),
+  .command-center .note-card:nth-of-type(n + 4),
+  .command-center .theme-row:nth-of-type(n + 5),
+  .command-center .compare-row:nth-of-type(n + 5) {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) and (orientation: landscape) {
+  .command-center .workbench {
+    height: calc(100dvh - 76px);
+  }
+
+  .command-center .side-nav button {
+    min-height: 34px;
+  }
+
+  .command-center .dashboard-layout > .panel,
+  .command-center .page-overview .panel,
+  .command-center .page-pulse .panel,
+  .command-center .quote-panel,
+  .command-center .decision-panel,
+  .command-center .notes-panel,
+  .command-center .cloud-panel,
+  .command-center .watch-panel,
+  .command-center .watch-monitor-panel,
+  .command-center .alert-panel,
+  .command-center .alert-settings-panel,
+  .command-center .brief-panel,
+  .command-center .theme-panel,
+  .command-center .compare-panel,
+  .command-center .data-panel,
+  .command-center .ai-panel,
+  .command-center .signal-panel,
+  .command-center .global-panel,
+  .command-center .economy-panel,
+  .command-center .geopolitics-panel,
+  .command-center .situation-feed-panel,
+  .command-center .news-panel,
+  .command-center .ranking-panel,
+  .command-center .breadth-panel,
+  .command-center .sector-panel,
+  .command-center .sentiment-panel,
+  .command-center .trend-panel,
+  .command-center .institution-panel,
+  .command-center .home-quote-panel {
+    grid-column: span 2 !important;
+  }
+}

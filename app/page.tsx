@@ -223,6 +223,8 @@ type GeopoliticsResponse =
 
 type PageKey =
   | "overview"
+  | "quote"
+  | "kline"
   | "morning"
   | "review"
   | "pulse"
@@ -293,46 +295,35 @@ const defaultAlertSettings: AlertSettings = {
 };
 
 const pages: { key: PageKey; label: string; description: string }[] = [
-  { key: "overview", label: "總覽首頁", description: "核心市場狀態、單股報價與快速同步。" },
+  { key: "overview", label: "Overview", description: "市場總覽、即時報價、AI 決策、自選股與風險警示。" },
+  { key: "quote", label: "Quote", description: "即時報價、K 線、均線與今日成交狀態。" },
+  { key: "kline", label: "K-Line Detail", description: "K 線、均線、技術型態與量價結構。" },
   { key: "morning", label: "開盤摘要", description: "盤前市場方向、國際影響與今日觀察清單。" },
   { key: "review", label: "收盤復盤", description: "今日警報、強弱股與明日檢查重點。" },
-  { key: "pulse", label: "市場脈動", description: "情緒分數、趨勢走勢與盤勢節奏。" },
+  { key: "pulse", label: "Market Pulse", description: "情緒分數、趨勢走勢與盤勢節奏。" },
   { key: "indices", label: "指數走勢", description: "加權、櫃買與後續國際指數監控。" },
   { key: "breadth", label: "市場廣度", description: "上漲下跌家數、廣度分數與待接全市場統計。" },
-  { key: "sectors", label: "產業輪動", description: "AI、半導體、航太與供應鏈族群雷達。" },
+  { key: "sectors", label: "Sector Rotation", description: "AI、半導體、航太與供應鏈族群雷達。" },
   { key: "themes", label: "主題雷達", description: "AI、半導體、散熱、航太與電力題材強弱。" },
   { key: "compare", label: "股票比較", description: "自選股技術、漲跌、警報與風險快速比較。" },
-  { key: "institutions", label: "法人動向", description: "外資、投信、自營商買賣超與授權缺口。" },
-  { key: "global", label: "國際市場", description: "美股、匯率、VIX 與宏觀經濟數據。" },
+  { key: "institutions", label: "Institution", description: "外資、投信、自營商買賣超與授權缺口。" },
+  { key: "global", label: "International", description: "美股、匯率、VIX 與宏觀經濟數據。" },
   { key: "data", label: "鏈接數據", description: "Fugle、TWSE、OpenAI 與資料健康狀態。" },
-  { key: "ai", label: "AI 分析中心", description: "條件式研究摘要、風險提醒與情境推演。" },
-  { key: "risk", label: "風險監控", description: "風險溫度、資料缺口與警示狀態。" },
+  { key: "ai", label: "AI", description: "條件式研究摘要、買賣決策、風險提醒與情境推演。" },
+  { key: "risk", label: "Alerts", description: "風險溫度、資料缺口與警示狀態。" },
   { key: "notifications", label: "通知中心", description: "警報、異動與待處理事項集中管理。" },
-  { key: "notes", label: "投資筆記", description: "記錄進場理由、停損、目標與復盤。" },
-  { key: "news", label: "新聞快訊", description: "TWSE 新聞與市場事件清單。" },
-  { key: "watchlist", label: "自選股監控", description: "AI 供應鏈與關注名單快速查詢。" },
-  { key: "settings", label: "設定", description: "資料源、環境變數與產品護欄。" },
+  { key: "notes", label: "Notes", description: "記錄進場理由、停損、目標與復盤。" },
+  { key: "news", label: "News", description: "TWSE 新聞與市場事件清單。" },
+  { key: "watchlist", label: "Watchlist", description: "AI 供應鏈與關注名單快速查詢。" },
+  { key: "settings", label: "Settings", description: "資料源、環境變數與產品護欄。" },
 ];
 
 const navOrder: PageKey[] = [
   "overview",
+  "quote",
   "watchlist",
-  "notes",
-  "morning",
-  "review",
-  "pulse",
-  "indices",
-  "breadth",
-  "sectors",
-  "themes",
-  "compare",
-  "institutions",
-  "global",
-  "data",
   "ai",
   "risk",
-  "notifications",
-  "news",
   "settings",
 ];
 
@@ -804,7 +795,7 @@ export default function Home() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [savedWatchlist, setSavedWatchlist] = useState<WatchItem[]>(loadStoredWatchlist);
+  const [savedWatchlist, setSavedWatchlist] = useState<WatchItem[]>(watchlist);
   const [customWatchSymbol, setCustomWatchSymbol] = useState("");
   const [watchQuotes, setWatchQuotes] = useState<Record<string, Quote>>({});
   const [watchQuoteStatus, setWatchQuoteStatus] = useState("自動更新");
@@ -812,40 +803,9 @@ export default function Home() {
   const [marketLoading, setMarketLoading] = useState(false);
   const [geopolitics, setGeopolitics] = useState<GeopoliticalSituation | null>(null);
   const [geopoliticsLoading, setGeopoliticsLoading] = useState(false);
-  const [alertSettings, setAlertSettings] = useState<AlertSettings>(() => {
-    if (typeof window === "undefined") return defaultAlertSettings;
-    try {
-      const stored = window.localStorage.getItem("la1-alert-settings");
-      if (!stored) return defaultAlertSettings;
-      return {
-        ...defaultAlertSettings,
-        ...(JSON.parse(stored) as Partial<AlertSettings>),
-      };
-    } catch {
-      window.localStorage.removeItem("la1-alert-settings");
-      return defaultAlertSettings;
-    }
-  });
-  const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const stored = window.localStorage.getItem("la1-read-notifications");
-      return stored ? (JSON.parse(stored) as string[]) : [];
-    } catch {
-      window.localStorage.removeItem("la1-read-notifications");
-      return [];
-    }
-  });
-  const [investmentNotes, setInvestmentNotes] = useState<InvestmentNote[]>(() => {
-    if (typeof window === "undefined") return [];
-    try {
-      const stored = window.localStorage.getItem("la1-investment-notes");
-      return stored ? (JSON.parse(stored) as InvestmentNote[]) : [];
-    } catch {
-      window.localStorage.removeItem("la1-investment-notes");
-      return [];
-    }
-  });
+  const [alertSettings, setAlertSettings] = useState<AlertSettings>(defaultAlertSettings);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
+  const [investmentNotes, setInvestmentNotes] = useState<InvestmentNote[]>([]);
   const [noteDraft, setNoteDraft] = useState({
     symbol: "2330",
     title: "",
@@ -853,29 +813,17 @@ export default function Home() {
     stop: "",
     target: "",
   });
-  const [cloudUserId, setCloudUserId] = useState(() => {
-    if (typeof window === "undefined") return "demo-user";
-    const existing = window.localStorage.getItem("la1-user-id");
-    if (existing) return existing;
-    const created = `la1-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
-    window.localStorage.setItem("la1-user-id", created);
-    return created;
-  });
-  const [isSignedIn, setIsSignedIn] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.localStorage.getItem("la1-auth-user") === "1";
-  });
+  const [cloudUserId, setCloudUserId] = useState("demo-user");
+  const [isSignedIn, setIsSignedIn] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [authPhone, setAuthPhone] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return window.localStorage.getItem("la1-auth-phone") ?? "";
-  });
+  const [authPhone, setAuthPhone] = useState("");
   const [authName, setAuthName] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
   const [authMessage, setAuthMessage] = useState("");
   const [cloudProfile, setCloudProfile] = useState({ email: "", name: "LA1 用戶" });
   const [cloudStatus, setCloudStatus] = useState("尚未同步");
   const [zoomedCard, setZoomedCard] = useState<{ title: string; markup: string; sourceClass: string } | null>(null);
+  const [storageReady, setStorageReady] = useState(false);
 
   const score = sentimentScore(quote);
   const marketScore = marketSummary?.breadth.score ?? score;
@@ -912,6 +860,54 @@ export default function Home() {
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [zoomedCard]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      setSavedWatchlist(loadStoredWatchlist());
+
+      try {
+        const storedAlertSettings = window.localStorage.getItem("la1-alert-settings");
+        if (storedAlertSettings) {
+          setAlertSettings({
+            ...defaultAlertSettings,
+            ...(JSON.parse(storedAlertSettings) as Partial<AlertSettings>),
+          });
+        }
+      } catch {
+        window.localStorage.removeItem("la1-alert-settings");
+      }
+
+      try {
+        const storedReadIds = window.localStorage.getItem("la1-read-notifications");
+        setReadNotificationIds(storedReadIds ? (JSON.parse(storedReadIds) as string[]) : []);
+      } catch {
+        window.localStorage.removeItem("la1-read-notifications");
+      }
+
+      try {
+        const storedNotes = window.localStorage.getItem("la1-investment-notes");
+        setInvestmentNotes(storedNotes ? (JSON.parse(storedNotes) as InvestmentNote[]) : []);
+      } catch {
+        window.localStorage.removeItem("la1-investment-notes");
+      }
+
+      const existingUserId = window.localStorage.getItem("la1-user-id");
+      if (existingUserId) {
+        setCloudUserId(existingUserId);
+      } else {
+        const created = `la1-${Math.random().toString(36).slice(2, 10)}-${Date.now().toString(36)}`;
+        window.localStorage.setItem("la1-user-id", created);
+        setCloudUserId(created);
+      }
+
+      setAuthPhone(window.localStorage.getItem("la1-auth-phone") ?? "");
+      setIsSignedIn(window.localStorage.getItem("la1-auth-user") === "1");
+      setStorageReady(true);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
   const tone = useMemo(() => {
     if (!quote?.changePercent) return "flat";
     return quote.changePercent > 0 ? "up" : "down";
@@ -1199,20 +1195,24 @@ export default function Home() {
   }, [fetchWatchQuotes, isSignedIn]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem(watchlistStorageKey, JSON.stringify(savedWatchlist));
-  }, [savedWatchlist]);
+  }, [savedWatchlist, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("la1-alert-settings", JSON.stringify(alertSettings));
-  }, [alertSettings]);
+  }, [alertSettings, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("la1-read-notifications", JSON.stringify(readNotificationIds));
-  }, [readNotificationIds]);
+  }, [readNotificationIds, storageReady]);
 
   useEffect(() => {
+    if (!storageReady) return;
     window.localStorage.setItem("la1-investment-notes", JSON.stringify(investmentNotes));
-  }, [investmentNotes]);
+  }, [investmentNotes, storageReady]);
 
   function updateAlertSetting(key: keyof AlertSettings, value: string) {
     const parsed = Number(value);
@@ -1480,7 +1480,7 @@ export default function Home() {
     change: item.symbol === quote?.symbol ? quote.changePercent : null,
   }));
 
-  async function fetchQuote(nextSymbol = symbol) {
+  const fetchQuote = useCallback(async (nextSymbol = symbol) => {
     const cleanSymbol = nextSymbol.replace(/\D/g, "").slice(0, 6);
     if (!cleanSymbol) {
       setError("請輸入股票代號。");
@@ -1515,7 +1515,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [symbol]);
 
   async function fetchAnalysis() {
     const cleanSymbol = (quote?.symbol ?? symbol).replace(/\D/g, "").slice(0, 6);
@@ -1555,6 +1555,14 @@ export default function Home() {
     event.preventDefault();
     void fetchQuote();
   }
+
+  useEffect(() => {
+    if (!isSignedIn || !storageReady || quote || loading) return;
+    const timer = window.setTimeout(() => {
+      void fetchQuote(symbol);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchQuote, isSignedIn, loading, quote, storageReady, symbol]);
 
   async function addWatchSymbol(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -2335,6 +2343,19 @@ export default function Home() {
     </Panel>
   );
 
+  const settingsQuickPanel = (
+    <Panel className="settings-quick-panel" eyebrow="Quick Settings" title="快速設定" status="即時">
+      <div className="quick-settings-grid">
+        <button data-no-card-zoom="true" onClick={() => setActivePage("settings")} type="button">版面配置</button>
+        <button data-no-card-zoom="true" onClick={() => setActivePage("kline")} type="button">技術指標</button>
+        <button data-no-card-zoom="true" onClick={() => setActivePage("watchlist")} type="button">自選群組</button>
+        <button data-no-card-zoom="true" onClick={() => setActivePage("risk")} type="button">警示設定</button>
+        <button data-no-card-zoom="true" onClick={() => void fetchAnalysis()} type="button">AI 分析</button>
+        <button data-no-card-zoom="true" onClick={() => void Promise.all([fetchQuote(), fetchMarketSummary(), fetchGeopolitics()])} type="button">資料更新</button>
+      </div>
+    </Panel>
+  );
+
   const sourcePanel = (
     <Panel className="data-panel" eyebrow="資料源狀態" title="真資料優先" status={context ? "已載入" : "待查詢"}>
       <div className="source-grid">
@@ -2353,16 +2374,29 @@ export default function Home() {
       case "overview":
         return (
           <>
-            {sentimentPanel}
-            {trendPanel}
-            {institutionPanel}
-            {breadthPanel}
-            {sectorPanel}
-            {rankingPanel}
-            {downRankingPanel}
-            {globalPanel}
-            {newsPanel}
+            {homeQuotePanel}
+            {quotePanel}
+            {decisionPanel}
             {watchMonitorPanel}
+            {alertPanel}
+          </>
+        );
+      case "quote":
+        return (
+          <>
+            {homeQuotePanel}
+            {quotePanel}
+            {decisionPanel}
+            {targetBreadthPanel}
+          </>
+        );
+      case "kline":
+        return (
+          <>
+            {quotePanel}
+            {trendPanel}
+            {signalPanel}
+            {targetBreadthPanel}
           </>
         );
       case "morning":
@@ -2469,17 +2503,16 @@ export default function Home() {
             {decisionPanel}
             {signalPanel}
             {aiPanel}
-            {quotePanel}
+            {sourcePanel}
           </>
         );
       case "risk":
         return (
           <>
-            {decisionPanel}
             {alertPanel}
             {alertSettingsPanel}
             {signalPanel}
-            {sentimentPanel}
+            {watchMonitorPanel}
           </>
         );
       case "notifications":
@@ -2504,13 +2537,14 @@ export default function Home() {
             {watchMonitorPanel}
             {watchPanel}
             {quotePanel}
-            {alertPanel}
           </>
         );
       case "settings":
         return (
           <>
+            {settingsQuickPanel}
             {cloudPanel}
+            {sourcePanel}
             {alertSettingsPanel}
             <Panel className="ai-panel" eyebrow="產品護欄" title="大眾版投資智能體" status="已啟用">
               <p>缺資料時顯示待接，不用 AI 補假行情、假法人或假新聞。輸出定位為研究摘要、情境推演與風險提醒，不做保證獲利的喊單。</p>

@@ -24,11 +24,17 @@ Implementation scope:
 - Menu pages were audited so each page now keeps only functionally relevant cards; unrelated quote, ranking, source, and news panels were removed from narrow-purpose pages.
 - Click-to-enlarge modal for dashboard cards.
 - Existing mobile layout and core data features preserved.
+- Terminal v2 rebuild now follows the selected generated reference: dark institutional cockpit UI, six-function menu only, and function scope limited to Overview, Quote, Watchlist, AI, Alerts, and Settings.
+- Overview is now composed only from the visible reference functions: live quote, K-line/quote monitor, AI decision, watchlist monitor, and alert monitor.
+- Quote, market summary, geopolitics, watchlist quote cache, sync, scan, notification, and OpenAI analysis entrypoints remain wired through app API routes.
+- Signed-in dashboard hydration was fixed by loading localStorage after mount; browser storage is not overwritten before storage hydration completes.
 
 Checks completed:
 - `pnpm run lint` passed.
+- `pnpm run build` passed.
 - `pnpm test` passed, including production build and rendered HTML tests.
+- Local API checks passed for `/api/market`, `/api/geopolitics`, `/api/context?symbol=2330`, and `/api/analyze?symbol=2330`.
+- Chrome CDP screenshots confirmed no hydration error after login, six navigation buttons, and five overview cards in the dashboard.
 
 Blocked check:
-- final result: blocked
-- Browser screenshot comparison was not completed because the project does not include Playwright and the in-app browser control tool was not available in this run.
+- none for current scope.

@@ -1685,7 +1685,7 @@ button:disabled {
 
 .watch-monitor-list {
   display: grid;
-  gap: 7px;
+  gap: 4px;
 }
 
 .watch-monitor-row {
@@ -1696,10 +1696,10 @@ button:disabled {
   border-radius: 7px;
   color: inherit;
   display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) 44px;
   min-width: 0;
-  padding: 9px;
+  padding: 6px 7px;
   text-align: left;
 }
 
@@ -1708,7 +1708,7 @@ button:disabled {
   border: 0;
   color: inherit;
   display: grid;
-  gap: 8px;
+  gap: 4px 8px;
   grid-template-columns: minmax(0, 1fr) auto;
   min-width: 0;
   padding: 0;
@@ -1736,23 +1736,23 @@ button:disabled {
 .watch-monitor-main > div:nth-child(2) {
   align-items: end;
   display: grid;
-  gap: 6px;
+  gap: 3px;
   justify-items: end;
 }
 
 .watch-monitor-row strong {
   color: var(--green);
   display: block;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   font-weight: 900;
 }
 
 .watch-monitor-row span {
   color: var(--foreground);
   display: block;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 850;
-  margin-top: 3px;
+  margin-top: 1px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1762,9 +1762,9 @@ button:disabled {
 .watch-monitor-main small {
   color: var(--muted);
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.62rem;
   grid-column: 1 / -1;
-  line-height: 1.35;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1772,7 +1772,7 @@ button:disabled {
 
 .watch-monitor-row em {
   color: var(--soft);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-style: normal;
   font-weight: 900;
 }
@@ -4086,6 +4086,59 @@ button:disabled {
   .command-center .news-item,
   .command-center .watch-monitor-row {
     font-size: 0.68rem;
+  }
+
+  .command-center .watch-monitor-list {
+    gap: 3px;
+  }
+
+  .command-center .watch-monitor-row {
+    border-left-width: 2px;
+    grid-template-columns: minmax(0, 1fr) 36px;
+    min-height: 42px;
+    padding: 5px 6px;
+  }
+
+  .command-center .watch-monitor-main {
+    align-items: center;
+    gap: 3px 6px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .command-center .watch-monitor-row strong {
+    display: inline;
+    font-size: 0.74rem;
+    margin-right: 5px;
+  }
+
+  .command-center .watch-monitor-row span {
+    display: inline;
+    font-size: 0.7rem;
+    margin-top: 0;
+  }
+
+  .command-center .watch-monitor-theme {
+    display: none;
+  }
+
+  .command-center .watch-monitor-note {
+    font-size: 0.58rem;
+  }
+
+  .command-center .watch-monitor-row em {
+    font-size: 0.7rem;
+  }
+
+  .command-center .watch-monitor-row .status-chip {
+    font-size: 0.56rem;
+    min-height: 18px;
+    padding: 0 6px;
+  }
+
+  .command-center .watch-monitor-row .watch-remove {
+    font-size: 0.58rem;
+    min-height: 28px;
+    padding: 0 5px;
   }
 }
 

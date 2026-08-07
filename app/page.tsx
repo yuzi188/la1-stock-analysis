@@ -2130,13 +2130,13 @@ export default function Home() {
               <div>
                 <strong>{item.symbol}</strong>
                 <span>{item.name}</span>
-                <small>{item.theme}</small>
+                <small className="watch-monitor-theme">{item.theme}</small>
               </div>
               <div>
                 <em>{formatPercent(item.changePercent)}</em>
                 <StatusPill tone={item.tone}>{item.status}</StatusPill>
               </div>
-              <small>{item.lastPrice ? "\u6536 " + formatNumber(item.lastPrice) + " \u00b7 " + item.note : item.note}</small>
+              <small className="watch-monitor-note">{item.lastPrice ? "\u6536 " + formatNumber(item.lastPrice) + " \u00b7 " + item.note : item.note}</small>
             </button>
             <button
               aria-label={`\u522a\u9664 ${item.symbol}`}

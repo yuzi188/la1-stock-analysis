@@ -5038,3 +5038,211 @@ button:disabled {
     grid-column: span 2 !important;
   }
 }
+
+@media (max-width: 1023px) {
+  html,
+  body {
+    overflow: hidden;
+  }
+
+  .command-center .page-title {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  .command-center .workbench {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: calc(100dvh - 88px);
+    overflow: hidden !important;
+  }
+
+  .command-center .dashboard-layout {
+    align-content: start;
+    grid-auto-rows: minmax(58px, 78px) !important;
+    overflow: hidden !important;
+  }
+
+  .command-center .dashboard-layout > .panel {
+    max-height: 78px;
+  }
+
+  .command-center .panel-head {
+    min-height: 15px;
+  }
+
+  .command-center .panel-head h2 {
+    font-size: 0.6rem;
+  }
+
+  .command-center .panel-head span {
+    font-size: 0.44rem;
+  }
+
+  .command-center .status-chip {
+    font-size: 0.45rem;
+    max-width: 54px;
+    min-height: 14px;
+    padding: 0 3px;
+  }
+
+  .command-center .gauge svg,
+  .command-center .donut svg {
+    max-height: 38px;
+  }
+
+  .command-center .gauge strong,
+  .command-center .donut strong {
+    font-size: 0.72rem;
+  }
+
+  .command-center .mini-trend,
+  .command-center .k-chart,
+  .command-center .page-overview .mini-trend {
+    min-height: 36px !important;
+  }
+
+  .command-center .sentiment-grid,
+  .command-center .decision-scores,
+  .command-center .decision-prices,
+  .command-center .quote-grid,
+  .command-center .home-quote-grid {
+    display: none;
+  }
+
+  .command-center .rank-row,
+  .command-center .global-row,
+  .command-center .news-item,
+  .command-center .sector-row,
+  .command-center .compact-row,
+  .command-center .watch-monitor-row,
+  .command-center .watch-row-shell,
+  .command-center .watch-row,
+  .command-center .theme-row,
+  .command-center .compare-row,
+  .command-center .notification-row {
+    min-height: 18px !important;
+    padding: 1px 0 !important;
+  }
+
+  .command-center .rank-row:nth-of-type(n + 3),
+  .command-center .global-row:nth-of-type(n + 3),
+  .command-center .news-item:nth-of-type(n + 3),
+  .command-center .sector-row:nth-of-type(n + 3),
+  .command-center .compact-row:nth-of-type(n + 3),
+  .command-center .watch-monitor-row:nth-of-type(n + 3),
+  .command-center .watch-row-shell:nth-of-type(n + 4),
+  .command-center .theme-row:nth-of-type(n + 3),
+  .command-center .compare-row:nth-of-type(n + 3),
+  .command-center .notification-row:nth-of-type(n + 3) {
+    display: none !important;
+  }
+
+  .command-center .page-watchlist .watch-panel,
+  .command-center .page-watchlist .watch-monitor-panel {
+    max-height: 78px;
+  }
+
+  .command-center .page-watchlist .watch-panel .watch-add {
+    display: none !important;
+  }
+
+  .command-center .page-watchlist .watch-row-shell,
+  .command-center .page-watchlist .watch-monitor-row {
+    border-bottom: 0;
+    grid-template-columns: minmax(0, 1fr) 28px;
+  }
+
+  .command-center .page-watchlist .watch-row {
+    gap: 3px;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    min-height: 18px;
+  }
+
+  .command-center .page-watchlist .watch-row strong,
+  .command-center .page-watchlist .watch-monitor-row strong {
+    font-size: 0.58rem;
+  }
+
+  .command-center .page-watchlist .watch-row span,
+  .command-center .page-watchlist .watch-monitor-row span {
+    display: inline-block;
+    font-size: 0.56rem;
+    line-height: 1;
+    margin: 0;
+    max-width: 48px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .command-center .page-watchlist .watch-row > small,
+  .command-center .page-watchlist .watch-monitor-theme,
+  .command-center .page-watchlist .watch-monitor-note {
+    display: none !important;
+  }
+
+  .command-center .page-watchlist .watch-price {
+    gap: 0;
+  }
+
+  .command-center .page-watchlist .watch-price em,
+  .command-center .page-watchlist .watch-price small,
+  .command-center .page-watchlist .watch-monitor-row em {
+    font-size: 0.54rem;
+    line-height: 1;
+  }
+
+  .command-center .page-watchlist .watch-remove {
+    border-radius: 4px;
+    font-size: 0.48rem;
+    min-height: 18px;
+    padding: 0 3px;
+  }
+
+  .command-center .card-zoom-content .watch-add {
+    display: grid !important;
+  }
+
+  .command-center .card-zoom-content .watch-row-shell,
+  .command-center .card-zoom-content .watch-monitor-row,
+  .command-center .card-zoom-content .rank-row,
+  .command-center .card-zoom-content .global-row,
+  .command-center .card-zoom-content .news-item,
+  .command-center .card-zoom-content .sector-row,
+  .command-center .card-zoom-content .compact-row,
+  .command-center .card-zoom-content .theme-row,
+  .command-center .card-zoom-content .compare-row,
+  .command-center .card-zoom-content .notification-row {
+    display: grid !important;
+    min-height: 34px !important;
+    padding: 7px 0 !important;
+  }
+
+  .command-center .card-zoom-content .watch-row > small,
+  .command-center .card-zoom-content .watch-monitor-theme,
+  .command-center .card-zoom-content .watch-monitor-note,
+  .command-center .card-zoom-content .rank-row small,
+  .command-center .card-zoom-content .global-row small,
+  .command-center .card-zoom-content .news-item span,
+  .command-center .card-zoom-content .sector-row small,
+  .command-center .card-zoom-content .compact-row small {
+    display: block !important;
+  }
+}
+
+@media (max-width: 1023px) and (orientation: landscape) {
+  .command-center .workbench {
+    height: calc(100dvh - 66px);
+  }
+
+  .command-center .dashboard-layout {
+    grid-auto-rows: minmax(50px, 68px) !important;
+  }
+
+  .command-center .dashboard-layout > .panel {
+    max-height: 68px;
+  }
+}

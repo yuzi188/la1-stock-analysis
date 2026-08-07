@@ -19,6 +19,7 @@ Implementation scope:
 - Overview homepage now prioritizes decision, live quote, trend, and sentiment in the first viewport, with breadth, sector rotation, institution, watchlist, rankings, global risk, and news below.
 - Desktop overview homepage now follows the reference command-center layout: 3-card top row, 4-card middle row, 3-card bottom row, with dense one-screen sizing and detailed quote/decision/geopolitics cards kept on their dedicated pages.
 - Mobile pages now use a thumbnail dashboard mode: compact two-column portrait and three-column landscape grids, with long copy/actions hidden in card view because cards can be tapped to inspect details.
+- Mobile thumbnail rows now use fixed compact heights instead of stretch-to-fill rows; watchlist cards collapse to ticker/price/status previews so the page no longer grows from long watchlist content.
 - International Market now includes a geopolitical situation panel using a GDELT-backed API endpoint plus World Monitor integration status and links.
 - Menu pages were audited so each page now keeps only functionally relevant cards; unrelated quote, ranking, source, and news panels were removed from narrow-purpose pages.
 - Click-to-enlarge modal for dashboard cards.

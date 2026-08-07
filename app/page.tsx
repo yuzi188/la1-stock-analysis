@@ -295,27 +295,27 @@ const defaultAlertSettings: AlertSettings = {
 };
 
 const pages: { key: PageKey; label: string; description: string }[] = [
-  { key: "overview", label: "Overview", description: "市場總覽、即時報價、AI 決策、自選股與風險警示。" },
-  { key: "quote", label: "Quote", description: "即時報價、K 線、均線與今日成交狀態。" },
-  { key: "kline", label: "K-Line Detail", description: "K 線、均線、技術型態與量價結構。" },
+  { key: "overview", label: "總覽", description: "市場總覽、即時報價、智能決策、自選股與風險警示。" },
+  { key: "quote", label: "報價", description: "即時報價、K 線、均線與今日成交狀態。" },
+  { key: "kline", label: "K線明細", description: "K 線、均線、技術型態與量價結構。" },
   { key: "morning", label: "開盤摘要", description: "盤前市場方向、國際影響與今日觀察清單。" },
   { key: "review", label: "收盤復盤", description: "今日警報、強弱股與明日檢查重點。" },
-  { key: "pulse", label: "Market Pulse", description: "情緒分數、趨勢走勢與盤勢節奏。" },
+  { key: "pulse", label: "市場脈動", description: "情緒分數、趨勢走勢與盤勢節奏。" },
   { key: "indices", label: "指數走勢", description: "加權、櫃買與後續國際指數監控。" },
   { key: "breadth", label: "市場廣度", description: "上漲下跌家數、廣度分數與待接全市場統計。" },
-  { key: "sectors", label: "Sector Rotation", description: "AI、半導體、航太與供應鏈族群雷達。" },
-  { key: "themes", label: "主題雷達", description: "AI、半導體、散熱、航太與電力題材強弱。" },
+  { key: "sectors", label: "產業輪動", description: "智能、半導體、航太與供應鏈族群雷達。" },
+  { key: "themes", label: "主題雷達", description: "智能、半導體、散熱、航太與電力題材強弱。" },
   { key: "compare", label: "股票比較", description: "自選股技術、漲跌、警報與風險快速比較。" },
-  { key: "institutions", label: "Institution", description: "外資、投信、自營商買賣超與授權缺口。" },
-  { key: "global", label: "International", description: "美股、匯率、VIX 與宏觀經濟數據。" },
+  { key: "institutions", label: "法人動向", description: "外資、投信、自營商買賣超與授權缺口。" },
+  { key: "global", label: "國際市場", description: "美股、匯率、VIX 與宏觀經濟數據。" },
   { key: "data", label: "鏈接數據", description: "Fugle、TWSE、OpenAI 與資料健康狀態。" },
-  { key: "ai", label: "AI", description: "條件式研究摘要、買賣決策、風險提醒與情境推演。" },
-  { key: "risk", label: "Alerts", description: "風險溫度、資料缺口與警示狀態。" },
+  { key: "ai", label: "智能", description: "條件式研究摘要、買賣決策、風險提醒與情境推演。" },
+  { key: "risk", label: "警報", description: "風險溫度、資料缺口與警示狀態。" },
   { key: "notifications", label: "通知中心", description: "警報、異動與待處理事項集中管理。" },
-  { key: "notes", label: "Notes", description: "記錄進場理由、停損、目標與復盤。" },
-  { key: "news", label: "News", description: "TWSE 新聞與市場事件清單。" },
-  { key: "watchlist", label: "Watchlist", description: "AI 供應鏈與關注名單快速查詢。" },
-  { key: "settings", label: "Settings", description: "資料源、環境變數與產品護欄。" },
+  { key: "notes", label: "筆記", description: "記錄進場理由、停損、目標與復盤。" },
+  { key: "news", label: "新聞", description: "TWSE 新聞與市場事件清單。" },
+  { key: "watchlist", label: "自選", description: "智能供應鏈與關注名單快速查詢。" },
+  { key: "settings", label: "設定", description: "資料源、環境變數與產品護欄。" },
 ];
 
 const navOrder: PageKey[] = [
@@ -332,10 +332,10 @@ const navigationPages = navOrder
   .filter((page): page is (typeof pages)[number] => Boolean(page));
 
 const watchlist: WatchItem[] = [
-  { symbol: "2330", name: "台積電", theme: "晶圓代工 / AI 算力" },
-  { symbol: "2317", name: "鴻海", theme: "AI 伺服器 / 電動車" },
-  { symbol: "2382", name: "廣達", theme: "AI 伺服器 ODM" },
-  { symbol: "3231", name: "緯創", theme: "AI 伺服器供應鏈" },
+  { symbol: "2330", name: "台積電", theme: "晶圓代工 / 智能算力" },
+  { symbol: "2317", name: "鴻海", theme: "智能伺服器 / 電動車" },
+  { symbol: "2382", name: "廣達", theme: "智能伺服器代工" },
+  { symbol: "3231", name: "緯創", theme: "智能伺服器供應鏈" },
   { symbol: "3661", name: "世芯-KY", theme: "ASIC / 高速運算" },
   { symbol: "6446", name: "藥華藥", theme: "生技高價股觀察" },
 ];
@@ -509,7 +509,7 @@ function buildInstitutionalTradePlan(
       zone: "先查詢個股",
       tone: "neutral",
       description: "先同步即時報價、K 線與大盤制度，再輸出買、不買或賣出的明確決策。",
-      checks: ["輸入股票代碼", "同步即時資料", "再產生 AI 分析"],
+      checks: ["輸入股票代碼", "同步即時資料", "再產生智能分析"],
     };
   }
 
@@ -1061,7 +1061,7 @@ export default function Home() {
   const weakestMover = marketSummary?.rankings.losers[0];
   const morningBias = marketScore >= 58 ? "偏多開局" : marketScore <= 42 ? "保守開局" : "震盪觀察";
   const themeRadarRows = [
-    { name: "AI 伺服器", symbols: ["2317", "2382", "3231"], catalyst: "算力需求 / ODM 出貨" },
+    { name: "智能伺服器", symbols: ["2317", "2382", "3231"], catalyst: "算力需求 / 代工出貨" },
     { name: "半導體", symbols: ["2330", "3661"], catalyst: "先進製程 / ASIC" },
     { name: "電力散熱", symbols: ["2308", "3017", "3324"], catalyst: "資料中心耗電與散熱" },
     { name: "太空航太", symbols: ["2634", "8033", "8222"], catalyst: "衛星通訊與航太零組件" },
@@ -1467,7 +1467,7 @@ export default function Home() {
           totalMatched: context ? 1 : 0,
           score: context?.revenue.yoyChangePercent ? Math.round(clamp(50 + context.revenue.yoyChangePercent / 2, 0, 100)) : 50,
           leaders: quote ? [{ ...quote, market: "TWSE" as const, close: quote.price }] : [],
-          source: context?.revenue.available ? "TWSE monthly revenue fallback" : "waiting market API",
+          source: context?.revenue.available ? "TWSE 月營收備援" : "等待市場資料",
           symbols: quote ? [quote.symbol] : [],
         },
       ];
@@ -1545,7 +1545,7 @@ export default function Home() {
     } catch {
       setAnalysis(null);
       setAnalysisMeta(null);
-      setAnalysisError("目前無法連線到 AI 分析服務，請稍後再試。");
+      setAnalysisError("目前無法連線到智能分析服務，請稍後再試。");
     } finally {
       setAnalysisLoading(false);
     }
@@ -1611,7 +1611,7 @@ export default function Home() {
   }
 
   const decisionPanel = (
-    <Panel className={`decision-panel ${signal.tone}`} eyebrow="AI 投資決策卡" title={quote ? `${quote.name} ${quote.symbol}` : "輸入股票產生決策"} status={decisionStatus} statusTone={signal.tone}>
+    <Panel className={`decision-panel ${signal.tone}`} eyebrow="智能投資決策卡" title={quote ? `${quote.name} ${quote.symbol}` : "輸入股票產生決策"} status={decisionStatus} statusTone={signal.tone}>
       <div className={`decision-hero ${signal.tone}`}>
         <div>
           <span>決策</span>
@@ -1650,7 +1650,7 @@ export default function Home() {
         ))}
       </div>
       <button className="decision-action" disabled={!quote || analysisLoading} onClick={() => void fetchAnalysis()} type="button">
-        {analysisLoading ? "AI 分析中" : analysis ? "更新 AI 分析" : "產生完整 AI 分析"}
+        {analysisLoading ? "智能分析中" : analysis ? "更新智能分析" : "產生完整智能分析"}
       </button>
     </Panel>
   );
@@ -1718,7 +1718,7 @@ export default function Home() {
   );
 
   const quotePanel = (
-    <Panel className={`quote-panel ${tone}`} eyebrow="Live Quote" title={quote ? `${quote.name} ${quote.symbol}` : "單股監控"} status={quote?.source ?? "Fugle"}>
+    <Panel className={`quote-panel ${tone}`} eyebrow="即時報價" title={quote ? `${quote.name} ${quote.symbol}` : "單股監控"} status={quote?.source ?? "Fugle"}>
       <div className="quote-price">
         <strong>{formatNumber(quote?.price)}</strong>
         <div>
@@ -1736,7 +1736,7 @@ export default function Home() {
       <div className="quote-actions">
         <span>更新時間：{formatTime(quote?.updatedAt)}</span>
         <button disabled={!quote || analysisLoading} onClick={() => void fetchAnalysis()} type="button">
-          {analysisLoading ? "分析中" : "產生 AI 分析"}
+          {analysisLoading ? "分析中" : "產生智能分析"}
         </button>
       </div>
     </Panel>
@@ -1745,7 +1745,7 @@ export default function Home() {
   const homeQuotePanel = (
     <Panel
       className={`home-quote-panel ${tone}`}
-      eyebrow={"Live Quote"}
+      eyebrow={"即時報價"}
       title={quote ? `${quote.name} ${quote.symbol}` : "\u500b\u80a1\u5373\u6642"}
       status={quote?.source ?? "Fugle"}
       statusTone={tone === "up" ? "up" : tone === "down" ? "down" : "neutral"}
@@ -1868,7 +1868,7 @@ export default function Home() {
     <Panel
       className="sector-panel"
       eyebrow="產業輪動"
-      title={marketSummary?.industryRotation.length ? "主題資金強弱" : "AI / 半導體雷達"}
+      title={marketSummary?.industryRotation.length ? "主題資金強弱" : "智能 / 半導體雷達"}
       status={marketSummary?.industryRotation.length ? "官方行情彙總" : "載入中"}
       statusTone={marketSummary?.industryRotation.length ? "up" : "neutral"}
     >
@@ -2012,9 +2012,9 @@ export default function Home() {
           <small>{geopolitics?.source ?? "GDELT DOC 2.0"}</small>
         </div>
         <div>
-          <span>World Monitor</span>
+          <span>全球監測</span>
           <strong>{geopolitics?.worldMonitor.configured ? "\u5df2\u914d\u7f6e" : "\u53ef\u63a5\u5165"}</strong>
-          <small>{geopolitics?.worldMonitor.configured ? "API/MCP ready" : "\u9700 WORLDMONITOR_API_KEY"}</small>
+          <small>{geopolitics?.worldMonitor.configured ? "已可連線" : "需設定全球監測金鑰"}</small>
         </div>
       </div>
       <div className="hotspot-grid">
@@ -2023,7 +2023,7 @@ export default function Home() {
           : [
               { name: "\u53f0\u6d77 / \u5357\u6d77", count: 0, severity: "medium" as const },
               { name: "\u4e2d\u6771 / \u7d05\u6d77", count: 0, severity: "medium" as const },
-              { name: "AI / \u534a\u5c0e\u9ad4", count: 0, severity: "low" as const },
+              { name: "智能 / \u534a\u5c0e\u9ad4", count: 0, severity: "low" as const },
             ]
         ).map((item) => (
           <div className={`hotspot-chip ${item.severity}`} key={item.name}>
@@ -2034,10 +2034,10 @@ export default function Home() {
       </div>
       <div className="world-monitor-links" data-no-card-zoom="true">
         <a href={geopolitics?.worldMonitor.dashboardUrl ?? "https://www.worldmonitor.app/"} target="_blank">
-          World Monitor
+          全球監測
         </a>
         <a href={geopolitics?.worldMonitor.repositoryUrl ?? "https://github.com/tncsharetool/worldmonitor"} target="_blank">
-          GitHub
+          原始碼
         </a>
       </div>
     </Panel>
@@ -2048,7 +2048,7 @@ export default function Home() {
       className="situation-feed-panel"
       eyebrow="\u5373\u6642\u570b\u969b\u4e8b\u4ef6"
       title={geopolitics?.events.length ? "\u5e02\u5834\u76f8\u95dc\u8ffd\u8e64" : "\u7b49\u5f85 GDELT"}
-      status={geopolitics ? "\u514d\u8cbb\u516c\u958b API" : "\u5f85\u540c\u6b65"}
+      status={geopolitics ? "\u514d\u8cbb\u516c\u958b\u8cc7\u6599" : "\u5f85\u540c\u6b65"}
       statusTone={geopolitics ? "up" : "neutral"}
     >
       <div className="situation-list">
@@ -2101,7 +2101,7 @@ export default function Home() {
   );
 
   const aiPanel = (
-    <Panel className="ai-panel" eyebrow="AI 分析中心" title={analysis?.stance ?? "等待分析"} status={analysisMeta?.model ?? "OpenAI"}>
+    <Panel className="ai-panel" eyebrow="智能分析中心" title={analysis?.stance ?? "等待分析"} status={analysisMeta?.model ?? "OpenAI"}>
       <p>{analysis?.conclusion ?? "查詢個股後，可產生條件式研究摘要、風險提醒與下一步檢查清單。"}</p>
       {analysis && (
         <div className="scenario-mini">
@@ -2114,7 +2114,7 @@ export default function Home() {
   );
 
   const signalPanel = (
-    <Panel className="signal-panel" eyebrow="AI 進出場燈號" title={signal.label} status={signal.zone} statusTone={signal.tone}>
+    <Panel className="signal-panel" eyebrow="智能進出場燈號" title={signal.label} status={signal.zone} statusTone={signal.tone}>
       <div className={`signal-badge ${signal.tone}`}>
         <strong>{signal.zone}</strong>
         <span>{signal.description}</span>
@@ -2129,7 +2129,7 @@ export default function Home() {
   );
 
   const watchPanel = (
-    <Panel className="watch-panel" eyebrow="自選股監控" title="AI 供應鏈" status={watchQuoteStatus}>
+    <Panel className="watch-panel" eyebrow="自選股監控" title="智能供應鏈" status={watchQuoteStatus}>
       <form className="watch-add" onSubmit={addWatchSymbol}>
         <input
           aria-label="新增自選股代碼"
@@ -2318,7 +2318,7 @@ export default function Home() {
           </button>
         ))}
       </div>
-      <p className="settings-note">點選任一股票即可切到該檔即時報價與 AI 決策卡。</p>
+      <p className="settings-note">點選任一股票即可切到該檔即時報價與智能決策卡。</p>
     </Panel>
   );
 
@@ -2329,7 +2329,7 @@ export default function Home() {
         <strong>{cloudUserId}</strong>
       </div>
       <div className="note-form-grid">
-        <label><span>Email</span><input onChange={(event) => setCloudProfile((profile) => ({ ...profile, email: event.target.value }))} placeholder="user@example.com" value={cloudProfile.email} /></label>
+        <label><span>電子信箱</span><input onChange={(event) => setCloudProfile((profile) => ({ ...profile, email: event.target.value }))} placeholder="user@example.com" value={cloudProfile.email} /></label>
         <label><span>名稱</span><input onChange={(event) => setCloudProfile((profile) => ({ ...profile, name: event.target.value }))} value={cloudProfile.name} /></label>
       </div>
       <div className="cloud-actions">
@@ -2339,18 +2339,18 @@ export default function Home() {
         <button onClick={() => void runCloudScan()} type="button">批次掃描</button>
         <button onClick={() => void sendTestNotification()} type="button">測試通知</button>
       </div>
-      <p className="settings-note">目前是輕量會員模式；正式版可替換成 Google、LINE 或 Email Magic Link 登入。</p>
+      <p className="settings-note">目前是輕量會員模式；正式版可替換成 Google、LINE 或電子信箱連結登入。</p>
     </Panel>
   );
 
   const settingsQuickPanel = (
-    <Panel className="settings-quick-panel" eyebrow="Quick Settings" title="快速設定" status="即時">
+    <Panel className="settings-quick-panel" eyebrow="快速設定" title="快速設定" status="即時">
       <div className="quick-settings-grid">
         <button data-no-card-zoom="true" onClick={() => setActivePage("settings")} type="button">版面配置</button>
         <button data-no-card-zoom="true" onClick={() => setActivePage("kline")} type="button">技術指標</button>
         <button data-no-card-zoom="true" onClick={() => setActivePage("watchlist")} type="button">自選群組</button>
         <button data-no-card-zoom="true" onClick={() => setActivePage("risk")} type="button">警示設定</button>
-        <button data-no-card-zoom="true" onClick={() => void fetchAnalysis()} type="button">AI 分析</button>
+        <button data-no-card-zoom="true" onClick={() => void fetchAnalysis()} type="button">智能分析</button>
         <button data-no-card-zoom="true" onClick={() => void Promise.all([fetchQuote(), fetchMarketSummary(), fetchGeopolitics()])} type="button">資料更新</button>
       </div>
     </Panel>
@@ -2360,11 +2360,11 @@ export default function Home() {
     <Panel className="data-panel" eyebrow="資料源狀態" title="真資料優先" status={context ? "已載入" : "待查詢"}>
       <div className="source-grid">
         <div><strong>Fugle</strong><span>即時報價 / K 線 / 均線</span><StatusPill tone={context ? "up" : "neutral"}>{context ? "已接" : "待查詢"}</StatusPill></div>
-        <div><strong>TWSE OpenAPI</strong><span>上市月營收 / 新聞</span><StatusPill tone={context ? "up" : "neutral"}>{context ? "已接" : "待查詢"}</StatusPill></div>
-        <div><strong>OpenAI</strong><span>研究摘要 / 情境推演</span><StatusPill tone={analysis ? "up" : "neutral"}>{analysis ? "已產生" : "待分析"}</StatusPill></div>
+        <div><strong>TWSE 官方資料</strong><span>上市月營收 / 新聞</span><StatusPill tone={context ? "up" : "neutral"}>{context ? "已接" : "待查詢"}</StatusPill></div>
+        <div><strong>智能模型</strong><span>研究摘要 / 情境推演</span><StatusPill tone={analysis ? "up" : "neutral"}>{analysis ? "已產生" : "待分析"}</StatusPill></div>
         <div><strong>法人買賣超</strong><span>TWSE T86 / TPEx 3insti</span><StatusPill tone={marketSummary ? "up" : "neutral"}>{marketSummary ? "已接官方" : "載入中"}</StatusPill></div>
         <div><strong>GDELT</strong><span>國際局勢 / 近即時新聞事件</span><StatusPill tone={geopolitics ? "up" : "neutral"}>{geopolitics ? "已接" : "待同步"}</StatusPill></div>
-        <div><strong>World Monitor</strong><span>全球情報儀表板 / API MCP</span><StatusPill tone={geopolitics?.worldMonitor.configured ? "up" : "warn"}>{geopolitics?.worldMonitor.configured ? "已配置" : "待 KEY"}</StatusPill></div>
+        <div><strong>全球監測</strong><span>全球情報儀表板 / 資料介面</span><StatusPill tone={geopolitics?.worldMonitor.configured ? "up" : "warn"}>{geopolitics?.worldMonitor.configured ? "已配置" : "待金鑰"}</StatusPill></div>
       </div>
     </Panel>
   );
@@ -2547,7 +2547,7 @@ export default function Home() {
             {sourcePanel}
             {alertSettingsPanel}
             <Panel className="ai-panel" eyebrow="產品護欄" title="大眾版投資智能體" status="已啟用">
-              <p>缺資料時顯示待接，不用 AI 補假行情、假法人或假新聞。輸出定位為研究摘要、情境推演與風險提醒，不做保證獲利的喊單。</p>
+              <p>缺資料時顯示待接，不用智能模型補假行情、假法人或假新聞。輸出定位為研究摘要、情境推演與風險提醒，不做保證獲利的喊單。</p>
             </Panel>
           </>
         );
@@ -2623,11 +2623,11 @@ export default function Home() {
 
   return (
     <main className="terminal-shell command-center">
-      <div className="command-marquee">STRATEGIC COMMAND CENTER</div>
+      <div className="command-marquee">戰略指揮中心</div>
       <aside className="sidebar">
         <div className="brand-block">
-          <strong>LA1 STOCK LAB</strong>
-          <span>MARKET INTELLIGENCE</span>
+          <strong>LA1 台股分析室</strong>
+          <span>台股智能分析</span>
         </div>
         <nav className="side-nav" aria-label="主要功能">
           {navigationPages.map((page, index) => (

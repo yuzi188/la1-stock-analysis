@@ -3405,6 +3405,120 @@ button:disabled {
   }
 }
 
+/* Final desktop left menu override. Keep after all desktop/mobile layout rules. */
+@media (min-width: 1024px) {
+  .terminal-shell.command-center {
+    --sidebar-width: 188px;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr) !important;
+  }
+
+  .command-center .sidebar {
+    align-content: stretch !important;
+    background: #0b1015 !important;
+    border-right: 1px solid #2a3540 !important;
+    display: grid !important;
+    grid-template-rows: auto minmax(320px, 1fr) auto !important;
+    height: 100dvh !important;
+    min-width: var(--sidebar-width) !important;
+    overflow: hidden !important;
+    padding: 18px 12px !important;
+    position: relative !important;
+    width: var(--sidebar-width) !important;
+  }
+
+  .command-center .brand-block {
+    align-self: start !important;
+    border-bottom: 1px solid #2a3540 !important;
+    display: grid !important;
+    gap: 5px !important;
+    min-height: 70px !important;
+    padding: 0 0 14px !important;
+  }
+
+  .command-center .brand-block strong {
+    color: #ffffff !important;
+    display: block !important;
+    font-size: 1rem !important;
+    line-height: 1.2 !important;
+    white-space: normal !important;
+  }
+
+  .command-center .brand-block span {
+    color: #aab7c2 !important;
+    display: block !important;
+    font-size: 0.68rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .command-center .side-nav {
+    align-self: stretch !important;
+    display: grid !important;
+    gap: 8px !important;
+    grid-auto-flow: row !important;
+    grid-auto-rows: minmax(42px, auto) !important;
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    margin: 14px 0 !important;
+    max-height: none !important;
+    min-height: 300px !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    transform: none !important;
+    visibility: visible !important;
+    z-index: 5 !important;
+  }
+
+  .command-center .side-nav button {
+    align-items: center !important;
+    background: #101922 !important;
+    border: 1px solid #24333f !important;
+    border-radius: 4px !important;
+    color: #dce8f0 !important;
+    display: grid !important;
+    font-size: 0.82rem !important;
+    font-weight: 720 !important;
+    gap: 8px !important;
+    grid-template-columns: 34px minmax(0, 1fr) !important;
+    justify-items: start !important;
+    line-height: 1.15 !important;
+    min-height: 42px !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+    padding: 8px 10px !important;
+    pointer-events: auto !important;
+    position: static !important;
+    text-align: left !important;
+    transform: none !important;
+    visibility: visible !important;
+    width: 100% !important;
+  }
+
+  .command-center .side-nav button span {
+    color: #81aeff !important;
+    display: inline !important;
+    font-size: 0.66rem !important;
+    font-weight: 800 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .command-center .side-nav button.active {
+    background: #172638 !important;
+    border-color: #6aa6ff !important;
+    box-shadow: inset 4px 0 0 #6aa6ff !important;
+    color: #ffffff !important;
+  }
+
+  .command-center .sidebar-footer {
+    align-self: end !important;
+    display: flex !important;
+    min-height: 54px !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
 /* Mobile card previews: show complete useful info without giant blank chart space. */
 @media (max-width: 1023px) {
   .command-center .dashboard-layout {

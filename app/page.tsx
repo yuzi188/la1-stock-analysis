@@ -349,6 +349,39 @@ const watchlist: WatchItem[] = [
   { symbol: "6446", name: "藥華藥", theme: "生技高價股觀察" },
 ];
 
+const watchlistStorageKey = "la1-saved-watchlist";
+
+function normalizeWatchItems(value: unknown): WatchItem[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const record = item as Partial<WatchItem>;
+      const symbol = typeof record.symbol === "string" ? record.symbol.replace(/\D/g, "").slice(0, 6) : "";
+      if (!symbol) return null;
+      return {
+        symbol,
+        name: typeof record.name === "string" && record.name.trim() ? record.name.trim() : "待同步公司名稱",
+        theme: typeof record.theme === "string" && record.theme.trim() ? record.theme.trim() : "自選股",
+      };
+    })
+    .filter((item): item is WatchItem => Boolean(item));
+}
+
+function loadStoredWatchlist() {
+  if (typeof window === "undefined") return watchlist;
+
+  try {
+    const stored = window.localStorage.getItem(watchlistStorageKey);
+    if (stored === null) return watchlist;
+    return normalizeWatchItems(JSON.parse(stored));
+  } catch {
+    window.localStorage.removeItem(watchlistStorageKey);
+    return watchlist;
+  }
+}
+
 function formatNumber(value: number | null | undefined, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(value)) return "--";
   return new Intl.NumberFormat("zh-TW", {
@@ -771,7 +804,7 @@ export default function Home() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
-  const [savedWatchlist, setSavedWatchlist] = useState<WatchItem[]>(watchlist);
+  const [savedWatchlist, setSavedWatchlist] = useState<WatchItem[]>(loadStoredWatchlist);
   const [customWatchSymbol, setCustomWatchSymbol] = useState("");
   const [watchQuotes, setWatchQuotes] = useState<Record<string, Quote>>({});
   const [watchQuoteStatus, setWatchQuoteStatus] = useState("自動更新");
@@ -1166,6 +1199,10 @@ export default function Home() {
   }, [fetchWatchQuotes, isSignedIn]);
 
   useEffect(() => {
+    window.localStorage.setItem(watchlistStorageKey, JSON.stringify(savedWatchlist));
+  }, [savedWatchlist]);
+
+  useEffect(() => {
     window.localStorage.setItem("la1-alert-settings", JSON.stringify(alertSettings));
   }, [alertSettings]);
 
@@ -1325,8 +1362,13 @@ export default function Home() {
       setCloudStatus("雲端讀取失敗");
       return;
     }
-    setSavedWatchlist(payload.snapshot.watchlist?.length ? payload.snapshot.watchlist : watchlist);
-    setInvestmentNotes(payload.snapshot.notes ?? []);
+    const cloudWatchlist = normalizeWatchItems(payload.snapshot.watchlist);
+    if (cloudWatchlist.length) {
+      setSavedWatchlist(cloudWatchlist);
+    }
+    if (payload.snapshot.notes?.length) {
+      setInvestmentNotes(payload.snapshot.notes);
+    }
     setAlertSettings({ ...defaultAlertSettings, ...payload.snapshot.alertSettings });
     setReadNotificationIds(payload.snapshot.readNotificationIds ?? []);
     setCloudStatus("雲端資料已載入");
@@ -2313,14 +2355,12 @@ export default function Home() {
           <>
             {sentimentPanel}
             {trendPanel}
-            {homeQuotePanel}
             {institutionPanel}
             {breadthPanel}
             {sectorPanel}
             {rankingPanel}
             {downRankingPanel}
             {globalPanel}
-            {geopoliticalPanel}
             {newsPanel}
             {watchMonitorPanel}
           </>

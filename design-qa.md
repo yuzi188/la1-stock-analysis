@@ -15,6 +15,9 @@ Implementation scope:
 - AI decision cards now use market-regime-first logic and show direct buy / no-buy / sell-or-avoid recommendations.
 - Sector rotation now uses TWSE/TPEx market data with LA1 theme symbol maps to show average change, breadth, score, and leading stocks for AI server, semiconductor, cooling/power, PCB/CCL, and aerospace themes.
 - Watchlist monitor rows were compacted for mobile so more selected stocks fit on one screen while preserving price, change, status, and delete actions.
+- Watchlist data now persists in browser storage and cloud pulls no longer replace a local watchlist with empty cloud data.
+- Overview homepage now prioritizes decision, live quote, trend, and sentiment in the first viewport, with breadth, sector rotation, institution, watchlist, rankings, global risk, and news below.
+- Desktop overview homepage now follows the reference command-center layout: 3-card top row, 4-card middle row, 3-card bottom row, with dense one-screen sizing and detailed quote/decision/geopolitics cards kept on their dedicated pages.
 - International Market now includes a geopolitical situation panel using a GDELT-backed API endpoint plus World Monitor integration status and links.
 - Menu pages were audited so each page now keeps only functionally relevant cards; unrelated quote, ranking, source, and news panels were removed from narrow-purpose pages.
 - Click-to-enlarge modal for dashboard cards.

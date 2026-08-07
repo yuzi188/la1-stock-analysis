@@ -2379,6 +2379,10 @@ export default function Home() {
             {decisionPanel}
             {watchMonitorPanel}
             {alertPanel}
+            {sectorPanel}
+            {institutionPanel}
+            {globalPanel}
+            {newsPanel}
           </>
         );
       case "quote":

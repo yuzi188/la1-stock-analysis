@@ -3405,6 +3405,108 @@ button:disabled {
   }
 }
 
+/* Mobile card previews: show complete useful info without giant blank chart space. */
+@media (max-width: 1023px) {
+  .command-center .dashboard-layout {
+    gap: 8px;
+    padding-bottom: 22px;
+  }
+
+  .command-center .dashboard-layout > .panel {
+    min-height: auto !important;
+  }
+
+  .command-center .page-watchlist .watch-monitor-panel,
+  .command-center .page-watchlist .watch-panel,
+  .command-center .page-watchlist .quote-panel,
+  .command-center .page-overview .home-quote-panel,
+  .command-center .page-overview .decision-panel,
+  .command-center .page-overview .watch-monitor-panel,
+  .command-center .page-overview .alert-panel,
+  .command-center .page-overview .sector-panel,
+  .command-center .page-overview .institution-panel,
+  .command-center .page-overview .global-panel,
+  .command-center .page-overview .news-panel {
+    min-height: auto !important;
+  }
+
+  .command-center .page-watchlist .quote-panel .k-chart,
+  .command-center .page-watchlist .quote-panel .k-chart-wrap,
+  .command-center .page-watchlist .quote-panel .quote-chart-panel,
+  .command-center .page-overview .quote-panel .k-chart,
+  .command-center .page-overview .quote-panel .k-chart-wrap,
+  .command-center .page-overview .quote-panel .quote-chart-panel {
+    display: none !important;
+  }
+
+  .command-center .page-quote .quote-panel .k-chart {
+    display: block !important;
+    min-height: 220px;
+  }
+
+  .command-center .quote-panel {
+    min-height: auto !important;
+  }
+
+  .command-center .quote-price,
+  .command-center .home-quote-price {
+    align-items: end;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .command-center .quote-grid,
+  .command-center .home-quote-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .command-center .quote-grid div,
+  .command-center .home-quote-grid div {
+    min-height: 58px;
+  }
+
+  .command-center .watch-monitor-list {
+    display: grid;
+    gap: 6px;
+  }
+
+  .command-center .watch-monitor-row,
+  .command-center .watch-row-shell {
+    border: 1px solid #27313a;
+    border-radius: 4px;
+    padding: 8px;
+  }
+
+  .command-center .watch-monitor-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .command-center .watch-monitor-main {
+    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .command-center .watch-monitor-note,
+  .command-center .watch-monitor-theme,
+  .command-center .watch-row > small {
+    white-space: normal;
+  }
+
+  .command-center .alert-list {
+    gap: 6px;
+  }
+
+  .command-center .alert-row {
+    min-height: auto !important;
+  }
+
+  .command-center .page-overview .sector-row:nth-of-type(n + 5),
+  .command-center .page-overview .institution-row:nth-of-type(n + 5),
+  .command-center .page-overview .global-row:nth-of-type(n + 5),
+  .command-center .page-overview .news-item:nth-of-type(n + 4) {
+    display: none;
+  }
+}
+
 /* Desktop navigation must stay visible on the left rail. */
 @media (min-width: 1024px) {
   .command-center .sidebar {

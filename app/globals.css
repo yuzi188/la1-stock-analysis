@@ -937,3 +937,129 @@ input:focus {
     color: var(--text);
   }
 }
+
+@media (hover: none) and (pointer: coarse) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+
+  .la1-shell {
+    display: block;
+    min-height: 100dvh;
+    padding-bottom: calc(86px + env(safe-area-inset-bottom));
+  }
+
+  .sidebar {
+    display: none;
+  }
+
+  .workspace {
+    max-height: none;
+    overflow: visible;
+    padding: 10px;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr !important;
+    min-height: auto;
+    position: static;
+  }
+
+  .dashboard,
+  .overview-grid,
+  .market-grid,
+  .quote-grid,
+  .watch-grid,
+  .ai-grid,
+  .settings-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .hero,
+  .wide-panel,
+  .chart-panel,
+  .overview-grid .panel,
+  .overview-grid .score-panel,
+  .overview-grid .trend-panel,
+  .quote-card,
+  .quote-grid .chart-panel,
+  .quote-grid .panel:not(.quote-card):not(.chart-panel),
+  .market-grid .panel,
+  .watch-grid .panel,
+  .ai-grid .panel,
+  .settings-grid .panel {
+    grid-column: 1 / -1 !important;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    min-height: 210px;
+    padding: 18px;
+  }
+
+  .metric-grid.two,
+  .metric-grid.three,
+  .metric-grid.four,
+  .metric-grid.five,
+  .market-strip,
+  .scenario-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .flow-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .panel {
+    overflow: hidden;
+  }
+
+  .panel h2,
+  .metric strong,
+  .stock-list span,
+  .watch-row strong {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .stock-list button {
+    grid-template-columns: 58px minmax(0, 1fr) 78px !important;
+  }
+
+  .stock-list button em {
+    grid-column: 3;
+  }
+
+  .watch-form,
+  .watch-row,
+  .setting-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .watch-row > button:first-child {
+    grid-template-columns: 58px minmax(0, 1fr) 78px !important;
+  }
+
+  .watch-row > button:first-child em {
+    grid-column: 3;
+  }
+
+  .mobile-nav {
+    background: rgba(3, 8, 13, 0.92);
+    border: 1px solid rgba(72, 180, 255, 0.28);
+    border-radius: 18px 18px 0 0;
+    bottom: 0;
+    display: grid !important;
+    gap: 6px;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    left: 0;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    position: fixed;
+    right: 0;
+    z-index: 20;
+  }
+}

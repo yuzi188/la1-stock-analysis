@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent, MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import { getStockAnalysis } from "./services/analysis.service";
+import { authenticateByPhone, saveUserProfile } from "./services/auth.service";
+import { getGeopoliticalSituation, getMarketSummary } from "./services/market.service";
+import { getBatchCachedQuotes, getCachedQuote, getStockContext } from "./services/stock.service";
+import {
+  pullCloudSnapshot as pullCloudSnapshotRequest,
+  pushCloudSnapshot as pushCloudSnapshotRequest,
+  runWatchlistScan,
+} from "./services/watchlist.service";
 
 type Quote = {
   symbol: string;
@@ -237,6 +246,7 @@ type PageKey =
   | "global"
   | "data"
   | "ai"
+  | "signals"
   | "risk"
   | "notifications"
   | "notes"
@@ -295,35 +305,43 @@ const defaultAlertSettings: AlertSettings = {
 };
 
 const pages: { key: PageKey; label: string; description: string }[] = [
-  { key: "overview", label: "總覽", description: "市場總覽、即時報價、智能決策、自選股與風險警示。" },
-  { key: "quote", label: "報價", description: "即時報價、K 線、均線與今日成交狀態。" },
-  { key: "kline", label: "K線明細", description: "K 線、均線、技術型態與量價結構。" },
-  { key: "morning", label: "開盤摘要", description: "盤前市場方向、國際影響與今日觀察清單。" },
-  { key: "review", label: "收盤復盤", description: "今日警報、強弱股與明日檢查重點。" },
-  { key: "pulse", label: "市場脈動", description: "情緒分數、趨勢走勢與盤勢節奏。" },
-  { key: "indices", label: "指數走勢", description: "加權、櫃買與後續國際指數監控。" },
-  { key: "breadth", label: "市場廣度", description: "上漲下跌家數、廣度分數與待接全市場統計。" },
-  { key: "sectors", label: "產業輪動", description: "智能、半導體、航太與供應鏈族群雷達。" },
-  { key: "themes", label: "主題雷達", description: "智能、半導體、散熱、航太與電力題材強弱。" },
-  { key: "compare", label: "股票比較", description: "自選股技術、漲跌、警報與風險快速比較。" },
-  { key: "institutions", label: "法人動向", description: "外資、投信、自營商買賣超與授權缺口。" },
-  { key: "global", label: "國際市場", description: "美股、匯率、VIX 與宏觀經濟數據。" },
-  { key: "data", label: "鏈接數據", description: "Fugle、TWSE、OpenAI 與資料健康狀態。" },
-  { key: "ai", label: "智能", description: "條件式研究摘要、買賣決策、風險提醒與情境推演。" },
-  { key: "risk", label: "警報", description: "風險溫度、資料缺口與警示狀態。" },
-  { key: "notifications", label: "通知中心", description: "警報、異動與待處理事項集中管理。" },
-  { key: "notes", label: "筆記", description: "記錄進場理由、停損、目標與復盤。" },
-  { key: "news", label: "新聞", description: "TWSE 新聞與市場事件清單。" },
-  { key: "watchlist", label: "自選", description: "智能供應鏈與關注名單快速查詢。" },
-  { key: "settings", label: "設定", description: "資料源、環境變數與產品護欄。" },
+  { key: "overview", label: "總覽首頁", description: "戰情總指揮中心，快速掌握市場、風險、資金與警報。" },
+  { key: "pulse", label: "市場脈動", description: "即時盤面節奏、動能、廣度、成交量與 AI Pulse。" },
+  { key: "indices", label: "指數走勢", description: "加權、櫃買、電子、金融與半導體指數分析終端。" },
+  { key: "sectors", label: "產業熱力圖", description: "產業強弱、資金流、法人與輪動地圖。" },
+  { key: "institutions", label: "法人動向", description: "外資、投信、自營商與法人共振。" },
+  { key: "global", label: "國際市場", description: "全球指數、匯率、美債、地緣事件與台股影響。" },
+  { key: "review", label: "盤後數據", description: "收盤後戰情簡報、排行、異常與 AI 復盤。" },
+  { key: "signals", label: "策略訊號", description: "法人、量能、趨勢、新聞與產業訊號偵測。" },
+  { key: "watchlist", label: "自選股中心", description: "自選群組、即時報價、警報與個股情報面板。" },
+  { key: "risk", label: "風險監控", description: "市場、波動、流動性、國際與自選股風險雷達。" },
+  { key: "news", label: "新聞快訊", description: "公司、產業、法人、國際與總經新聞情報流。" },
+  { key: "ai", label: "AI 戰情中心", description: "結構化 AI 市場情報簡報，不是聊天機器人。" },
+  { key: "settings", label: "設定", description: "帳戶、資料源、警報、AI、外觀與系統設定。" },
+  { key: "quote", label: "個股報價", description: "保留舊版即時報價與 K 線查詢能力。" },
+  { key: "kline", label: "K 線明細", description: "保留舊版 K 線、均線與量價結構。" },
+  { key: "morning", label: "開盤摘要", description: "保留舊版盤前摘要。" },
+  { key: "breadth", label: "市場廣度", description: "保留舊版廣度細節。" },
+  { key: "themes", label: "主題雷達", description: "保留舊版題材監控。" },
+  { key: "compare", label: "股票比較", description: "保留舊版自選比較。" },
+  { key: "data", label: "鏈接數據", description: "保留舊版資料健康狀態。" },
+  { key: "notifications", label: "通知中心", description: "保留舊版警報與通知。" },
+  { key: "notes", label: "投資筆記", description: "保留舊版投資筆記。" },
 ];
 
 const navOrder: PageKey[] = [
   "overview",
-  "quote",
+  "pulse",
+  "indices",
+  "sectors",
+  "institutions",
+  "global",
+  "review",
+  "signals",
   "watchlist",
-  "ai",
   "risk",
+  "news",
+  "ai",
   "settings",
 ];
 
@@ -1101,10 +1119,9 @@ export default function Home() {
   const fetchMarketSummary = useCallback(async () => {
     setMarketLoading(true);
     try {
-      const response = await fetch("/api/market", { cache: "no-store" });
-      const payload = (await response.json()) as MarketSummaryResponse;
+      const { payload } = await getMarketSummary<MarketSummaryResponse>();
 
-      if (!payload.ok) {
+      if (!payload?.ok) {
         setError(payload.error);
         return;
       }
@@ -1120,10 +1137,9 @@ export default function Home() {
   const fetchGeopolitics = useCallback(async () => {
     setGeopoliticsLoading(true);
     try {
-      const response = await fetch("/api/geopolitics", { cache: "no-store" });
-      const payload = (await response.json()) as GeopoliticsResponse;
+      const { payload } = await getGeopoliticalSituation<GeopoliticsResponse>();
 
-      if (!payload.ok) {
+      if (!payload?.ok) {
         setError(payload.error);
         return;
       }
@@ -1145,15 +1161,10 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch("/api/quote-cache?ttlMs=30000", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ symbols }),
-      });
-      const payload = await response.json().catch(() => null) as {
+      const { response, payload } = await getBatchCachedQuotes<{
         ok?: boolean;
         quotes?: { symbol: string; ok: boolean; quote?: Quote }[];
-      } | null;
+      }>(symbols, 30_000);
 
       if (!response.ok || !payload?.ok) {
         setWatchQuoteStatus("報價待更新");
@@ -1273,21 +1284,16 @@ export default function Home() {
     setAuthBusy(true);
     setAuthMessage(authMode === "register" ? "\u8a3b\u518a\u4e2d..." : "\u767b\u5165\u4e2d...");
     try {
-      const response = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          mode: authMode,
-          phone: authPhone,
-          name: authName,
-        }),
-      });
-      const payload = await response.json().catch(() => null) as {
+      const { response, payload } = await authenticateByPhone<{
         ok?: boolean;
         error?: string;
         phone?: string;
         user?: { id: string; name?: string; email?: string | null };
-      } | null;
+      }>({
+        mode: authMode,
+        phone: authPhone,
+        name: authName,
+      });
 
       if (!response.ok || !payload?.ok || !payload.user?.id) {
         setAuthMessage(payload?.error ?? "\u767b\u5165\u5931\u6557\uff0c\u8acb\u91cd\u65b0\u8f38\u5165\u624b\u6a5f\u865f\u3002");
@@ -1315,41 +1321,24 @@ export default function Home() {
 
   async function saveCloudProfile() {
     setCloudStatus("會員資料同步中");
-    const response = await fetch("/api/user", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-la1-user-id": cloudUserId,
-      },
-      body: JSON.stringify(cloudProfile),
-    });
+    const { response } = await saveUserProfile(cloudUserId, cloudProfile);
     setCloudStatus(response.ok ? "會員資料已同步" : "會員資料同步失敗");
   }
 
   async function pushCloudSnapshot() {
     setCloudStatus("上傳雲端中");
-    const response = await fetch("/api/sync", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-la1-user-id": cloudUserId,
-      },
-      body: JSON.stringify({
-        watchlist: savedWatchlist,
-        notes: investmentNotes,
-        alertSettings,
-        readNotificationIds,
-      }),
+    const { response } = await pushCloudSnapshotRequest(cloudUserId, {
+      watchlist: savedWatchlist,
+      notes: investmentNotes,
+      alertSettings,
+      readNotificationIds,
     });
     setCloudStatus(response.ok ? "雲端同步完成" : "雲端同步失敗");
   }
 
   async function pullCloudSnapshot() {
     setCloudStatus("讀取雲端中");
-    const response = await fetch("/api/sync", {
-      headers: { "x-la1-user-id": cloudUserId },
-    });
-    const payload = await response.json().catch(() => null) as {
+    const { response, payload } = await pullCloudSnapshotRequest<{
       ok?: boolean;
       snapshot?: {
         watchlist?: WatchItem[];
@@ -1357,7 +1346,7 @@ export default function Home() {
         alertSettings?: AlertSettings;
         readNotificationIds?: string[];
       };
-    } | null;
+    }>(cloudUserId);
     if (!response.ok || !payload?.ok || !payload.snapshot) {
       setCloudStatus("雲端讀取失敗");
       return;
@@ -1377,16 +1366,9 @@ export default function Home() {
   async function runCloudScan() {
     setCloudStatus("自選股掃描中");
     await pushCloudSnapshot();
-    const response = await fetch("/api/scan", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-la1-user-id": cloudUserId,
-      },
-      body: JSON.stringify({
-        symbols: savedWatchlist.map((item) => item.symbol),
-        alertSettings,
-      }),
+    const { response } = await runWatchlistScan(cloudUserId, {
+      symbols: savedWatchlist.map((item) => item.symbol),
+      alertSettings,
     });
     setCloudStatus(response.ok ? "批次掃描完成" : "批次掃描失敗，請確認 Fugle Key");
   }
@@ -1496,10 +1478,9 @@ export default function Home() {
     setContext(null);
 
     try {
-      const response = await fetch(`/api/context?symbol=${cleanSymbol}`, { cache: "no-store" });
-      const payload = (await response.json()) as ContextResponse;
+      const { payload } = await getStockContext<ContextResponse>(cleanSymbol);
 
-      if (!payload.ok) {
+      if (!payload?.ok) {
         setQuote(null);
         setContext(null);
         setError(payload.error);
@@ -1528,10 +1509,9 @@ export default function Home() {
     setAnalysisError(null);
 
     try {
-      const response = await fetch(`/api/analyze?symbol=${cleanSymbol}`, { cache: "no-store" });
-      const payload = (await response.json()) as AnalyzeResponse;
+      const { payload } = await getStockAnalysis<AnalyzeResponse>(cleanSymbol);
 
-      if (!payload.ok) {
+      if (!payload?.ok) {
         setAnalysis(null);
         setAnalysisMeta(null);
         setAnalysisError(payload.error);
@@ -1572,11 +1552,10 @@ export default function Home() {
     let nextQuote = quote?.symbol === nextSymbol ? quote : null;
     if (!nextQuote) {
       try {
-        const response = await fetch(`/api/quote-cache?symbol=${nextSymbol}&ttlMs=30000`, { cache: "no-store" });
-        const payload = await response.json().catch(() => null) as {
+        const { response, payload } = await getCachedQuote<{
           ok?: boolean;
           quote?: Quote;
-        } | null;
+        }>(nextSymbol, 30_000);
         if (response.ok && payload?.ok && payload.quote) {
           nextQuote = payload.quote;
           setWatchQuotes((quotes) => ({ ...quotes, [nextSymbol]: payload.quote as Quote }));
@@ -2510,6 +2489,14 @@ export default function Home() {
             {sourcePanel}
           </>
         );
+      case "signals":
+        return (
+          <>
+            {signalPanel}
+            {decisionPanel}
+            {watchMonitorPanel}
+          </>
+        );
       case "risk":
         return (
           <>
@@ -2688,18 +2675,48 @@ export default function Home() {
         <PageTitle page={activePageMeta} />
 
         {activePage === "overview" ? (
-          <section className="top-metrics" aria-label="市場總覽指標" onClick={openZoomedCard}>
-            {topCards.map((card) => (
-              <article className="metric-card" key={card.label}>
+          <>
+            <section className="overview-command-hero" aria-label="戰情總指揮中心">
+              <div className="hero-live-state">
+                <span className="live-dot" />
+                <span>盤中交易</span>
+              </div>
+              <div className="hero-score">
+                <span>戰情指數</span>
+                <strong>{marketRegime.score}</strong>
+                <small>/100</small>
+              </div>
+              <div className="hero-status-grid">
                 <div>
-                  <span>{card.label}</span>
-                  <strong>{card.value}</strong>
-                  <p>{card.detail}</p>
+                  <span>市場方向</span>
+                  <strong>{marketRegime.label}</strong>
                 </div>
-                <StatusPill tone={card.tone}>{card.source}</StatusPill>
-              </article>
-            ))}
-          </section>
+                <div>
+                  <span>風險等級</span>
+                  <strong>{risk >= 70 ? "高" : risk >= 45 ? "中" : "低"}</strong>
+                </div>
+                <div>
+                  <span>更新時間</span>
+                  <strong>{new Date().toLocaleTimeString("zh-TW", { hour12: false })}</strong>
+                </div>
+              </div>
+              <button className="hero-cta" onClick={() => setActivePage("ai")} type="button">
+                進入戰情中心
+              </button>
+            </section>
+            <section className="top-metrics" aria-label="市場總覽指標" onClick={openZoomedCard}>
+              {topCards.map((card) => (
+                <article className="metric-card" key={card.label}>
+                  <div>
+                    <span>{card.label}</span>
+                    <strong>{card.value}</strong>
+                    <p>{card.detail}</p>
+                  </div>
+                  <StatusPill tone={card.tone}>{card.source}</StatusPill>
+                </article>
+              ))}
+            </section>
+          </>
         ) : null}
 
         <section className={`dashboard-layout page-${activePage}`} onClick={openZoomedCard}>

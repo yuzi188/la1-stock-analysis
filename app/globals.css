@@ -20,6 +20,333 @@
   --sidebar-width: 176px;
 }
 
+/* UI rebuild phase 1: lock desktop to the visual blueprint.
+   Desktop uses a fixed left command sidebar; mobile keeps bottom navigation. */
+@media (min-width: 1024px) {
+  :root {
+    --sidebar-width: 210px;
+  }
+
+  .command-center.terminal-shell {
+    background:
+      radial-gradient(circle at 50% -20%, rgba(39, 182, 255, 0.15), transparent 34%),
+      linear-gradient(180deg, #06111a 0%, #03080d 72%, #020509 100%) !important;
+    display: grid !important;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr) !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+  }
+
+  .command-center.terminal-shell::before,
+  .command-center.terminal-shell::after,
+  .command-marquee {
+    display: none !important;
+  }
+
+  .command-center .sidebar {
+    align-items: stretch !important;
+    background:
+      linear-gradient(180deg, rgba(7, 23, 34, 0.96), rgba(3, 8, 13, 0.98)) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    border-right: 1px solid rgba(72, 180, 255, 0.18) !important;
+    bottom: auto !important;
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 14px !important;
+    grid-template-columns: none !important;
+    height: 100vh !important;
+    left: auto !important;
+    min-width: var(--sidebar-width) !important;
+    overflow: hidden !important;
+    padding: 18px 12px !important;
+    position: sticky !important;
+    right: auto !important;
+    top: 0 !important;
+    width: var(--sidebar-width) !important;
+  }
+
+  .command-center .brand-block {
+    align-content: start !important;
+    border-bottom: 1px solid rgba(72, 180, 255, 0.18) !important;
+    border-right: 0 !important;
+    display: block !important;
+    padding: 4px 4px 18px !important;
+  }
+
+  .command-center .brand-block strong {
+    color: #f4f7fa !important;
+    font-size: 1.24rem !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.04em !important;
+  }
+
+  .command-center .brand-block span {
+    color: #95a4b5 !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.12em !important;
+  }
+
+  .command-center .side-nav {
+    display: grid !important;
+    gap: 7px !important;
+    grid-auto-columns: unset !important;
+    grid-auto-flow: row !important;
+    min-height: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 0 2px 0 0 !important;
+  }
+
+  .command-center .side-nav button {
+    align-content: center !important;
+    align-items: center !important;
+    background: rgba(8, 25, 37, 0.72) !important;
+    border: 1px solid rgba(72, 180, 255, 0.12) !important;
+    border-radius: 8px !important;
+    color: #95a4b5 !important;
+    display: grid !important;
+    font-size: 0.84rem !important;
+    gap: 8px !important;
+    grid-template-columns: 34px minmax(0, 1fr) !important;
+    justify-items: stretch !important;
+    line-height: 1.2 !important;
+    min-height: 42px !important;
+    min-width: 0 !important;
+    padding: 8px 10px !important;
+    text-align: left !important;
+    white-space: normal !important;
+    width: 100% !important;
+  }
+
+  .command-center .side-nav button span {
+    align-items: center !important;
+    background: rgba(39, 182, 255, 0.08) !important;
+    border: 1px solid rgba(72, 180, 255, 0.16) !important;
+    border-radius: 6px !important;
+    color: #8fcfff !important;
+    display: grid !important;
+    font-size: 0.72rem !important;
+    height: 26px !important;
+    justify-content: center !important;
+    width: 30px !important;
+  }
+
+  .command-center .side-nav button.active,
+  .command-center .side-nav button:hover {
+    background: linear-gradient(90deg, rgba(39, 182, 255, 0.28), rgba(8, 25, 37, 0.82)) !important;
+    border-color: rgba(39, 182, 255, 0.55) !important;
+    box-shadow:
+      inset 3px 0 0 #27b6ff,
+      0 0 22px rgba(39, 182, 255, 0.18) !important;
+    color: #f4f7fa !important;
+  }
+
+  .command-center .sidebar-footer {
+    background: rgba(8, 25, 37, 0.72) !important;
+    border: 1px solid rgba(72, 180, 255, 0.13) !important;
+    border-radius: 8px !important;
+    border-left: 1px solid rgba(72, 180, 255, 0.13) !important;
+    height: auto !important;
+    margin-top: auto !important;
+    min-height: 72px !important;
+    padding: 12px !important;
+  }
+
+  .command-center .workbench {
+    background:
+      linear-gradient(90deg, rgba(39, 182, 255, 0.045) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(39, 182, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(180deg, rgba(3, 8, 13, 0.96), rgba(6, 17, 26, 0.96)) !important;
+    background-size: 46px 46px, 46px 46px, auto !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    gap: 12px !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    max-width: none !important;
+    overflow: auto !important;
+    padding: 16px !important;
+  }
+
+  .command-center .workbench::before,
+  .command-center .workbench::after {
+    display: none !important;
+  }
+
+  .command-center .topbar {
+    background: rgba(8, 25, 37, 0.9) !important;
+    border: 1px solid rgba(72, 180, 255, 0.15) !important;
+    border-radius: 10px !important;
+    grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.2fr) auto !important;
+    min-height: 68px !important;
+    padding: 12px 14px !important;
+    position: sticky !important;
+    top: 0 !important;
+  }
+
+  .overview-command-hero {
+    background:
+      linear-gradient(90deg, rgba(3, 8, 13, 0.92), rgba(3, 8, 13, 0.35) 46%, rgba(3, 8, 13, 0.88)),
+      linear-gradient(180deg, rgba(3, 8, 13, 0.08), rgba(3, 8, 13, 0.78)),
+      url("/assets/command-center-cockpit.png") center / cover no-repeat;
+    border: 1px solid rgba(72, 180, 255, 0.18);
+    border-radius: 12px;
+    box-shadow: inset 0 0 42px rgba(39, 182, 255, 0.08);
+    display: grid;
+    grid-template-columns: minmax(220px, 0.8fr) minmax(260px, 1fr) minmax(360px, 1.5fr) auto;
+    min-height: 300px;
+    overflow: hidden;
+    padding: 28px;
+    position: relative;
+  }
+
+  .overview-command-hero::after {
+    background: linear-gradient(90deg, transparent, rgba(39, 182, 255, 0.55), transparent);
+    bottom: 0;
+    content: "";
+    height: 1px;
+    left: 12%;
+    position: absolute;
+    right: 12%;
+  }
+
+  .hero-live-state,
+  .hero-score,
+  .hero-status-grid,
+  .hero-cta {
+    align-self: end;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-live-state {
+    align-items: center;
+    color: #20d894;
+    display: flex;
+    font-size: 1.05rem;
+    font-weight: 850;
+    gap: 10px;
+  }
+
+  .hero-score span,
+  .hero-status-grid span {
+    color: #95a4b5;
+    display: block;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .hero-score strong {
+    color: #20d894;
+    display: inline-block;
+    font-size: clamp(3.2rem, 5vw, 5.4rem);
+    font-weight: 950;
+    line-height: 0.92;
+  }
+
+  .hero-score small {
+    color: #95a4b5;
+    font-weight: 800;
+    margin-left: 6px;
+  }
+
+  .hero-status-grid {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hero-status-grid div {
+    background: rgba(8, 25, 37, 0.62);
+    border: 1px solid rgba(72, 180, 255, 0.14);
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .hero-status-grid strong {
+    color: #f4f7fa;
+    display: block;
+    font-size: 1.05rem;
+    margin-top: 5px;
+  }
+
+  .hero-cta {
+    background: linear-gradient(90deg, rgba(39, 182, 255, 0.28), rgba(0, 214, 255, 0.14));
+    border: 1px solid rgba(39, 182, 255, 0.45);
+    border-radius: 9px;
+    color: #f4f7fa;
+    font-weight: 900;
+    min-height: 42px;
+    padding: 0 18px;
+  }
+}
+
+@media (max-width: 1023px) {
+  .overview-command-hero {
+    background:
+      linear-gradient(180deg, rgba(3, 8, 13, 0.35), rgba(3, 8, 13, 0.88)),
+      url("/assets/command-center-cockpit.png") center / cover no-repeat;
+    border: 1px solid rgba(72, 180, 255, 0.18);
+    border-radius: 12px;
+    display: grid;
+    gap: 10px;
+    min-height: 220px;
+    padding: 16px;
+  }
+
+  .hero-live-state {
+    align-items: center;
+    color: #20d894;
+    display: flex;
+    font-weight: 850;
+    gap: 8px;
+  }
+
+  .hero-score strong {
+    color: #20d894;
+    font-size: 3.2rem;
+    line-height: 1;
+  }
+
+  .hero-score span,
+  .hero-status-grid span {
+    color: #95a4b5;
+    display: block;
+    font-size: 0.72rem;
+  }
+
+  .hero-status-grid {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .hero-status-grid div {
+    background: rgba(8, 25, 37, 0.68);
+    border: 1px solid rgba(72, 180, 255, 0.14);
+    border-radius: 8px;
+    padding: 8px;
+  }
+
+  .hero-status-grid strong {
+    display: block;
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+
+  .hero-cta {
+    background: rgba(39, 182, 255, 0.18);
+    border: 1px solid rgba(39, 182, 255, 0.38);
+    border-radius: 8px;
+    min-height: 38px;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

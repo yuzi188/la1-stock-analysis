@@ -1,5 +1,6 @@
 /**
- * LA1 Trading Core — Paper Trading + AI Stock Robot
+ * LA1 Trading Core — 全自動 AI Paper Trading 核心
+ * 可直接複製到 yuzi188/la1-stock-analysis 專案使用
  */
 
 export * from "./config/trading.config";

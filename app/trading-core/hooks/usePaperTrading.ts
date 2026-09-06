@@ -8,10 +8,15 @@ import {
 import { PaperBroker } from "../broker/paper-broker";
 import { RiskEngine, type AccountState } from "../engines/risk-engine";
 import type { DecisionSnapshot, StructuredDecision } from "../types/decision";
-import { toStructuredDecision, type La1AnalyzeResponse } from "../adapters/la1-analyze-adapter";
+import {
+  toStructuredDecision,
+  type La1AnalyzeResponse,
+} from "../adapters/la1-analyze-adapter";
 
 export function usePaperTrading() {
-  const [config, setConfig] = useState<TradingConfig>({ ...defaultTradingConfig });
+  const [config, setConfig] = useState<TradingConfig>({
+    ...defaultTradingConfig,
+  });
   const brokerRef = useRef(new PaperBroker(defaultTradingConfig));
   const riskRef = useRef(new RiskEngine(defaultTradingConfig));
   const [snapshots, setSnapshots] = useState<DecisionSnapshot[]>([]);
@@ -37,40 +42,75 @@ export function usePaperTrading() {
     return {
       cash: acc.cash,
       equity: acc.equity,
+      dayStartEquity: acc.dayStartEquity,
       positions: Array.from(acc.positions.values()),
       orders: acc.orders,
       closedTrades: acc.closedTrades,
     };
   }, [tick]);
 
-  const account = useMemo(() => getAccountSnapshot(), [getAccountSnapshot, tick]);
+  const account = useMemo(
+    () => getAccountSnapshot(),
+    [getAccountSnapshot, tick],
+  );
 
-  const accountState = useCallback((markPrice = 0): AccountState => {
+  /** 真實 daily PnL %（來自 broker） */
+  const dailyPnlPct = useMemo(() => {
+    void tick;
+    return brokerRef.current.getDailyPnlPct();
+  }, [tick]);
+
+  /**
+   * 組 AccountState 給 Risk Engine
+   * - dailyPnlPct 用真實值
+   * - marketValue 用各檔 lastMarkPrice / avgPrice
+   */
+  const accountState = useCallback((): AccountState => {
     const acc = brokerRef.current.getAccount();
     return {
       cash: acc.cash,
       equity: acc.equity,
       openPositions: acc.positions.size,
-      dailyPnlPct: 0,
+      dailyPnlPct: brokerRef.current.getDailyPnlPct(),
       positions: Array.from(acc.positions.values()).map((p) => ({
         symbol: p.symbol,
-        marketValue: p.quantity * (markPrice || p.avgPrice),
+        marketValue:
+          p.quantity * (p.lastMarkPrice ?? p.avgPrice),
       })),
     };
   }, []);
 
+  /** 更新行情標記價（多檔） */
+  const updateMarks = useCallback(
+    (prices: Record<string, number>) => {
+      brokerRef.current.updateMarks(prices);
+      refresh();
+    },
+    [],
+  );
+
   const executeDecision = useCallback(
     (decision: StructuredDecision, currentPrice: number) => {
-      const state = accountState(currentPrice);
+      // 先標記此標的價格，再算風控
+      brokerRef.current.updateMarks({ [decision.symbol]: currentPrice });
+      const state = accountState();
       const verdict = riskRef.current.evaluate(decision, state);
       if (config.saveDecisionSnapshot) {
-        const snap = riskRef.current.createSnapshot(decision, verdict, state);
+        const snap = riskRef.current.createSnapshot(
+          decision,
+          verdict,
+          state,
+        );
         setSnapshots((prev) => [...prev.slice(-499), snap]);
       }
       if (!verdict.approved) {
         return { ok: false as const, reason: verdict.reason, verdict };
       }
-      const order = brokerRef.current.executeMarketOrder(decision, verdict, currentPrice);
+      const order = brokerRef.current.executeMarketOrder(
+        decision,
+        verdict,
+        currentPrice,
+      );
       refresh();
       return { ok: true as const, order, verdict };
     },
@@ -117,15 +157,18 @@ export function usePaperTrading() {
     [executeDecision],
   );
 
-  const robotState: "running" | "stopped" | "emergency" = config.emergencyStop
-    ? "emergency"
-    : robotRunning
-      ? "running"
-      : "stopped";
+  const robotState: "running" | "stopped" | "emergency" =
+    config.emergencyStop
+      ? "emergency"
+      : robotRunning
+        ? "running"
+        : "stopped";
 
-  const dailyPnlPct =
+  /** 總報酬（相對初始資金） */
+  const totalPnlPct =
     config.initialCapital > 0
-      ? ((account.equity - config.initialCapital) / config.initialCapital) * 100
+      ? ((account.equity - config.initialCapital) / config.initialCapital) *
+        100
       : 0;
 
   return {
@@ -143,9 +186,12 @@ export function usePaperTrading() {
     setLastError,
     robotState,
     dailyPnlPct,
+    totalPnlPct,
+    updateMarks,
     executeDecision,
     paperBuyFromAnalyze,
     closePosition,
     toStructuredDecision,
+    getBroker: () => brokerRef.current,
   };
 }

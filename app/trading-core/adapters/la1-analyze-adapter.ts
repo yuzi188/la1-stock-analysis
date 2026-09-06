@@ -1,5 +1,8 @@
 /**
  * LA1 Analyze → StructuredDecision 適配器
+ *
+ * 把現有 /api/analyze 的回傳格式，轉成 StockRobot 能吃的 StructuredDecision
+ * 之後只要在 LA1 專案裡 import 這個函式即可串接
  */
 
 import type {
@@ -9,11 +12,19 @@ import type {
   PositionPlan,
 } from "../types/decision";
 
+// ────────────────────────────────────────────────────────────
+// LA1 /api/analyze 目前的回傳形狀（依你 repo 實際結構）
+// ────────────────────────────────────────────────────────────
+
 export interface La1AnalysisResult {
   conclusion: string;
   stance: "偏多" | "中性" | "偏保守";
   facts: string[];
-  scenarios: { bullish: string; neutral: string; bearish: string };
+  scenarios: {
+    bullish: string;
+    neutral: string;
+    bearish: string;
+  };
   risks: string[];
   nextChecks: string[];
   disclaimer: string;
@@ -37,53 +48,83 @@ export interface La1AnalyzeResponse {
   error?: string;
 }
 
+// ────────────────────────────────────────────────────────────
+// 轉換邏輯
+// ────────────────────────────────────────────────────────────
+
 function mapStance(stance: La1AnalysisResult["stance"]): DecisionStance {
   if (stance === "偏多") return "bullish";
   if (stance === "偏保守") return "bearish";
   return "neutral";
 }
 
+/**
+ * 從 conclusion 文字推斷動作
+ * LA1 prompt 要求開頭必須是：建議買 / 不買 / 建議賣出 / 續抱觀察
+ */
 function inferAction(conclusion: string, stance: DecisionStance): DecisionAction {
   const text = conclusion.trim();
+
   if (/^建議買|^買進|^買入|^做多/i.test(text)) return "BUY";
   if (/^建議賣出|^賣出|^做空|^平倉/i.test(text)) return "SELL";
   if (/^不買|^觀望|^不建議/i.test(text)) return "HOLD";
   if (/^續抱|^持有|^觀察/i.test(text)) return "HOLD";
+
+  // fallback 用 stance
   if (stance === "bullish") return "BUY";
   if (stance === "bearish") return "SELL";
   return "HOLD";
 }
 
-function estimateConfidence(analysis: La1AnalysisResult, action: DecisionAction): number {
+/**
+ * 從 conclusion / risks / nextChecks 粗估信心
+ * 之後可改成模型直接輸出 confidence
+ */
+function estimateConfidence(
+  analysis: La1AnalysisResult,
+  action: DecisionAction,
+): number {
   let score = 0.55;
+
   if (action === "BUY" || action === "SELL") score += 0.1;
   if (analysis.facts.length >= 3) score += 0.05;
   if (analysis.risks.length <= 2) score += 0.05;
   if (/明確|強|突破|確認/.test(analysis.conclusion)) score += 0.08;
   if (/可能|或許|觀察|不確定/.test(analysis.conclusion)) score -= 0.1;
+
   return Math.max(0.3, Math.min(0.95, score));
 }
 
+/**
+ * 產生簡易進場計畫（用現價推算）
+ * 之後可讓 AI 直接輸出精確數字
+ */
 function buildPlan(
   action: DecisionAction,
   price: number | null | undefined,
   stance: DecisionStance,
 ): PositionPlan | null {
   if (action !== "BUY" || !price || price <= 0) return null;
+
+  // 預設：停損約 3%，目標約 6% → R:R ≈ 2
   const stopLoss = +(price * 0.97).toFixed(2);
   const takeProfit = +(price * 1.06).toFixed(2);
   const risk = price - stopLoss;
   const reward = takeProfit - price;
   const riskReward = risk > 0 ? +(reward / risk).toFixed(2) : 1.5;
+
   return {
     entry: price,
     stopLoss,
     takeProfit,
     riskReward,
-    sizePct: stance === "bullish" ? 8 : 5,
+    sizePct: stance === "bullish" ? 8 : 5, // 偏多給稍大一點
   };
 }
 
+/**
+ * 主轉換函式
+ */
 export function toStructuredDecision(
   res: La1AnalyzeResponse,
   symbolFallback?: string,
@@ -114,6 +155,8 @@ export function toStructuredDecision(
   const action = inferAction(analysis.conclusion, stance);
   const confidence = estimateConfidence(analysis, action);
   const plan = buildPlan(action, price, stance);
+
+  // 從 nextChecks 與 risks 抽出失效條件
   const invalidation = [
     ...analysis.nextChecks.slice(0, 2),
     ...analysis.risks.slice(0, 2),
@@ -137,6 +180,13 @@ export function toStructuredDecision(
   };
 }
 
+/**
+ * 給 StockRobot 用的 aiDecide 函式工廠
+ *
+ * 使用方式：
+ * const aiDecide = createLa1AiDecideFn("http://localhost:3000");
+ * const robot = new StockRobot(config, aiDecide, getQuoteFn);
+ */
 export function createLa1AiDecideFn(baseUrl: string) {
   return async (
     symbol: string,

@@ -1,10 +1,17 @@
 /**
- * Paper Broker — FIX: per-symbol marks for equity
+ * Paper Broker — 模擬撮合
+ *
+ * FIX batch:
+ * - recalcEquity 依「各標的最新價」計價，不再用單一 lastPrice 污染全倉
+ * - 支援 marks map 更新市值
+ * - OrderType 目前僅 market 真正執行（limit/stop 型別保留、執行會 reject）
  */
+
 import type { TradingConfig } from "../config/trading.config";
 import type { StructuredDecision, RiskVerdict } from "../types/decision";
 
 export type OrderSide = "buy" | "sell";
+/** 宣告支援的類型；目前僅 market 有實作 */
 export type OrderType = "market" | "limit" | "stop";
 
 export interface Order {
@@ -30,12 +37,14 @@ export interface Position {
   stopLoss?: number;
   takeProfit?: number;
   openedAt: string;
+  /** 最近一次標記價（用於 equity） */
   lastMarkPrice?: number;
 }
 
 export interface PaperAccount {
   cash: number;
   equity: number;
+  /** 當日開始時的權益（用於 daily PnL） */
   dayStartEquity: number;
   positions: Map<string, Position>;
   orders: Order[];
@@ -54,6 +63,7 @@ export interface PaperAccount {
 export class PaperBroker {
   private account: PaperAccount;
   private orderSeq = 0;
+  /** symbol → 最新標記價 */
   private marks = new Map<string, number>();
 
   constructor(private config: TradingConfig) {
@@ -67,12 +77,22 @@ export class PaperBroker {
     };
   }
 
-  getAccount() { return this.account; }
-  getCash() { return this.account.cash; }
-  getPositions() { return Array.from(this.account.positions.values()); }
+  getAccount(): PaperAccount {
+    return this.account;
+  }
 
+  getCash() {
+    return this.account.cash;
+  }
+
+  getPositions() {
+    return Array.from(this.account.positions.values());
+  }
+
+  /** 更新單一或多檔標記價，並重算 equity */
   updateMarks(prices: Record<string, number> | Map<string, number>) {
-    const entries = prices instanceof Map ? prices.entries() : Object.entries(prices);
+    const entries =
+      prices instanceof Map ? prices.entries() : Object.entries(prices);
     for (const [symbol, price] of entries) {
       if (typeof price === "number" && Number.isFinite(price) && price > 0) {
         this.marks.set(symbol, price);
@@ -83,56 +103,105 @@ export class PaperBroker {
     this.recalcEquity();
   }
 
-  getDailyPnlPct() {
-    if (this.account.dayStartEquity <= 0) return 0;
-    return ((this.account.equity - this.account.dayStartEquity) / this.account.dayStartEquity) * 100;
+  getMark(symbol: string, fallback?: number) {
+    return this.marks.get(symbol) ?? fallback;
   }
 
+  /** 當日損益 %（相對 dayStartEquity） */
+  getDailyPnlPct() {
+    if (this.account.dayStartEquity <= 0) return 0;
+    return (
+      ((this.account.equity - this.account.dayStartEquity) /
+        this.account.dayStartEquity) *
+      100
+    );
+  }
+
+  /** 新交易日開始時呼叫，重置 dayStartEquity */
   rollDay() {
     this.recalcEquity();
     this.account.dayStartEquity = this.account.equity;
   }
 
+  /**
+   * 依各持倉自己的標記價重算權益
+   * 優先 lastMarkPrice → marks map → avgPrice
+   */
   recalcEquity() {
     let positionsValue = 0;
     for (const pos of this.account.positions.values()) {
-      const px = pos.lastMarkPrice ?? this.marks.get(pos.symbol) ?? pos.avgPrice;
+      const px =
+        pos.lastMarkPrice ??
+        this.marks.get(pos.symbol) ??
+        pos.avgPrice;
       positionsValue += pos.quantity * px;
     }
     this.account.equity = this.account.cash + positionsValue;
   }
 
-  executeMarketOrder(decision: StructuredDecision, verdict: RiskVerdict, currentPrice: number): Order {
-    if (!verdict.approved) return this.rejectOrder(decision.symbol, "buy", 0, "Risk 未通過");
-    if (!currentPrice || currentPrice <= 0) return this.rejectOrder(decision.symbol, "buy", 0, "無效價格");
+  executeMarketOrder(
+    decision: StructuredDecision,
+    verdict: RiskVerdict,
+    currentPrice: number,
+  ): Order {
+    if (!verdict.approved) {
+      return this.rejectOrder(decision.symbol, "buy", 0, "Risk 未通過");
+    }
+    if (!currentPrice || currentPrice <= 0) {
+      return this.rejectOrder(decision.symbol, "buy", 0, "無效價格");
+    }
+
+    // 更新此標的標記價
     this.marks.set(decision.symbol, currentPrice);
-    if (decision.action === "BUY") return this.fillBuy(decision, verdict, currentPrice);
-    if (decision.action === "SELL" || decision.action === "CLOSE") return this.fillSell(decision, currentPrice);
+
+    if (decision.action === "BUY") {
+      return this.fillBuy(decision, verdict, currentPrice);
+    }
+    if (decision.action === "SELL" || decision.action === "CLOSE") {
+      return this.fillSell(decision, currentPrice);
+    }
     return this.rejectOrder(decision.symbol, "buy", 0, "不支援的動作");
   }
 
-  private fillBuy(decision: StructuredDecision, verdict: RiskVerdict, currentPrice: number): Order {
+  private fillBuy(
+    decision: StructuredDecision,
+    verdict: RiskVerdict,
+    currentPrice: number,
+  ): Order {
     const slippage = currentPrice * (this.config.slippageBps / 10000);
     const fillPrice = currentPrice + slippage;
+
+    // 優先使用 Risk Engine 算出的股數
     let quantity = verdict.finalShares ?? 0;
     if (quantity <= 0) {
       const sizePct = verdict.finalSizePct ?? decision.plan?.sizePct ?? 0;
-      quantity = Math.floor((this.account.equity * (sizePct / 100)) / fillPrice);
+      const notional = this.account.equity * (sizePct / 100);
+      quantity = Math.floor(notional / fillPrice);
     }
-    if (quantity <= 0) return this.rejectOrder(decision.symbol, "buy", 0, "數量為 0");
+    if (quantity <= 0) {
+      return this.rejectOrder(decision.symbol, "buy", 0, "數量為 0");
+    }
+
     const notional = quantity * fillPrice;
     const fee = notional * this.config.feeRate;
     const cost = notional + fee;
-    if (cost > this.account.cash) return this.rejectOrder(decision.symbol, "buy", quantity, "現金不足");
+    if (cost > this.account.cash) {
+      return this.rejectOrder(decision.symbol, "buy", quantity, "現金不足");
+    }
+
     this.account.cash -= cost;
+
     const existing = this.account.positions.get(decision.symbol);
     if (existing) {
       const totalQty = existing.quantity + quantity;
-      existing.avgPrice = (existing.avgPrice * existing.quantity + fillPrice * quantity) / totalQty;
+      existing.avgPrice =
+        (existing.avgPrice * existing.quantity + fillPrice * quantity) /
+        totalQty;
       existing.quantity = totalQty;
       existing.lastMarkPrice = currentPrice;
       if (decision.plan?.stopLoss) existing.stopLoss = decision.plan.stopLoss;
-      if (decision.plan?.takeProfit) existing.takeProfit = decision.plan.takeProfit;
+      if (decision.plan?.takeProfit)
+        existing.takeProfit = decision.plan.takeProfit;
     } else {
       this.account.positions.set(decision.symbol, {
         symbol: decision.symbol,
@@ -145,6 +214,7 @@ export class PaperBroker {
         lastMarkPrice: currentPrice,
       });
     }
+
     const order: Order = {
       id: `PO-${++this.orderSeq}`,
       symbol: decision.symbol,
@@ -164,7 +234,10 @@ export class PaperBroker {
 
   private fillSell(decision: StructuredDecision, currentPrice: number): Order {
     const pos = this.account.positions.get(decision.symbol);
-    if (!pos || pos.quantity <= 0) return this.rejectOrder(decision.symbol, "sell", 0, "無持倉");
+    if (!pos || pos.quantity <= 0) {
+      return this.rejectOrder(decision.symbol, "sell", 0, "無持倉");
+    }
+
     const slippage = currentPrice * (this.config.slippageBps / 10000);
     const fillPrice = currentPrice - slippage;
     const sellQty = pos.quantity;
@@ -172,27 +245,53 @@ export class PaperBroker {
     const tax = proceeds * this.config.taxRate;
     const sellFee = proceeds * this.config.feeRate;
     this.account.cash += proceeds - sellFee - tax;
+
     const pnl = (fillPrice - pos.avgPrice) * sellQty - sellFee - tax;
     this.account.closedTrades.push({
-      symbol: decision.symbol, side: "sell", quantity: sellQty,
-      entryPrice: pos.avgPrice, exitPrice: fillPrice, pnl, fee: sellFee + tax,
+      symbol: decision.symbol,
+      side: "sell",
+      quantity: sellQty,
+      entryPrice: pos.avgPrice,
+      exitPrice: fillPrice,
+      pnl,
+      fee: sellFee + tax,
       closedAt: new Date().toISOString(),
     });
     this.account.positions.delete(decision.symbol);
+
     const order: Order = {
-      id: `PO-${++this.orderSeq}`, symbol: decision.symbol, side: "sell", type: "market",
-      quantity: sellQty, status: "filled", filledPrice: fillPrice,
-      filledAt: new Date().toISOString(), fee: sellFee + tax, createdAt: new Date().toISOString(),
+      id: `PO-${++this.orderSeq}`,
+      symbol: decision.symbol,
+      side: "sell",
+      type: "market",
+      quantity: sellQty,
+      status: "filled",
+      filledPrice: fillPrice,
+      filledAt: new Date().toISOString(),
+      fee: sellFee + tax,
+      createdAt: new Date().toISOString(),
     };
     this.account.orders.push(order);
     this.recalcEquity();
     return order;
   }
 
-  private rejectOrder(symbol: string, side: OrderSide, quantity: number, reason: string): Order {
+  private rejectOrder(
+    symbol: string,
+    side: OrderSide,
+    quantity: number,
+    reason: string,
+  ): Order {
     const order: Order = {
-      id: `PO-${++this.orderSeq}`, symbol, side, type: "market", quantity,
-      status: "rejected", fee: 0, createdAt: new Date().toISOString(), rejectReason: reason,
+      id: `PO-${++this.orderSeq}`,
+      symbol,
+      side,
+      type: "market",
+      quantity,
+      status: "rejected",
+      fee: 0,
+      createdAt: new Date().toISOString(),
+      rejectReason: reason,
     };
     this.account.orders.push(order);
     console.warn(`[PaperBroker] Order rejected: ${reason}`);
